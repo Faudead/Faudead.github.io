@@ -13,4 +13,4 @@ df.to_json(
     force_ascii=False
 )
 
-print("data.json updated")
+print("updated")
