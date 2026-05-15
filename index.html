@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Wishlist</title>
+<title>Список бажань</title>
 
 <style>
 body {
@@ -19,6 +19,7 @@ h1 {
   margin-bottom: 12px;
 }
 
+/* controls */
 .controls {
   display: flex;
   gap: 10px;
@@ -33,13 +34,14 @@ input, select {
   outline: none;
 }
 
+/* grid */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
 }
 
-/* CARD */
+/* card */
 .card {
   background: #1e293b;
   border-radius: 14px;
@@ -53,7 +55,7 @@ input, select {
   border-color: #3b82f6;
 }
 
-/* IMAGE FIX */
+/* image */
 .card img {
   width: 100%;
   height: 170px;
@@ -62,7 +64,7 @@ input, select {
   padding: 10px;
 }
 
-/* CONTENT */
+/* content */
 .content {
   padding: 12px;
   display: flex;
@@ -74,16 +76,17 @@ input, select {
   font-size: 10px;
   opacity: 0.6;
   text-transform: uppercase;
-}
-
-.title {
-  font-size: 16px;
-  font-weight: bold;
+  letter-spacing: 1px;
 }
 
 .category {
   font-size: 13px;
   opacity: 0.8;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: bold;
 }
 
 .price {
@@ -98,6 +101,7 @@ a {
   font-size: 14px;
 }
 
+/* button */
 button {
   margin-top: 8px;
   padding: 10px;
@@ -117,19 +121,19 @@ button.bought {
 
 <body>
 
-<h1>Wishlist</h1>
+<h1>Список бажань</h1>
 
 <div class="controls">
-  <input id="search" placeholder="Search...">
+  <input id="search" placeholder="Пошук...">
 
   <select id="category">
-    <option value="all">All categories</option>
+    <option value="all">Всі категорії</option>
   </select>
 
   <select id="sort">
-    <option value="none">Sort</option>
-    <option value="asc">Price ↑</option>
-    <option value="desc">Price ↓</option>
+    <option value="none">Сортування</option>
+    <option value="asc">Ціна ↑ (дешевші)</option>
+    <option value="desc">Ціна ↓ (дорожчі)</option>
   </select>
 </div>
 
@@ -207,25 +211,28 @@ function render(items) {
 
     grid.innerHTML += `
       <div class="card">
+
         <img src="${item.image || ''}">
 
         <div class="content">
-          <div class="label">Category</div>
+
+          <div class="label">Категорія</div>
           <div class="category">${item.category}</div>
 
-          <div class="label">Title</div>
+          <div class="label">Назва</div>
           <div class="title">${item.title}</div>
 
-          <div class="label">Price</div>
+          <div class="label">Ціна</div>
           <div class="price">${item.price}</div>
 
-          <div class="label">Link</div>
-          <a href="${item.url}" target="_blank">open</a>
+          <div class="label">Посилання</div>
+          <a href="${item.url}" target="_blank">відкрити товар</a>
 
           <button class="${isBought ? 'bought' : ''}"
                   onclick="toggleBought('${item.title}')">
-            ${isBought ? '✔ Куплено' : 'Mark as bought'}
+            ${isBought ? '✔ Куплено' : 'Позначити як куплено'}
           </button>
+
         </div>
       </div>
     `;
