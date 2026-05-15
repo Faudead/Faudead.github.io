@@ -1,47 +1,31 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html>
 <head>
   <meta charset="UTF-8">
   <title>Wishlist</title>
-
-  <style>
-    body { background:#0f172a; color:white; font-family:Arial; padding:20px; }
-    .card { background:#1e293b; margin:10px; padding:10px; border-radius:10px; }
-    img { width:200px; }
-  </style>
 </head>
 <body>
 
 <h1>Wishlist</h1>
-
 <div id="app"></div>
 
 <script>
-const CSV_URL = "https://docs.google.com/spreadsheets/d/1Wgs2XgmamRKgoEd_R4Z2tbOa21h8t6UjlslB62hAtYs/export?format=csv&gid=0";
+const SHEET_ID = "1Wgs2XgmamRKgoEd_R4Z2tbOa21h8t6UjlslB62hAtYs";
+const URL = `https://opensheet.elk.sh/${SHEET_ID}/Sheet1`;
 
-fetch(CSV_URL)
-  .then(r => r.text())
-  .then(text => {
-    const rows = text.trim().split("\n").slice(1);
-
+fetch(URL)
+  .then(r => r.json())
+  .then(data => {
     const app = document.getElementById("app");
 
-    rows.forEach(r => {
-      const cols = r.split(",");
-
-      const category = cols[0];
-      const title = cols[1];
-      const price = cols[2];
-      const url = cols[3];
-      const image = cols[4];
-
+    data.forEach(item => {
       app.innerHTML += `
-        <div class="card">
-          <img src="${image}">
-          <h3>${title}</h3>
-          <p>${category}</p>
-          <p>${price}</p>
-          <a href="${url}" target="_blank">open</a>
+        <div style="border:1px solid #ccc; margin:10px; padding:10px;">
+          <img src="${item.image}" width="200"/>
+          <h3>${item.title}</h3>
+          <p>${item.category}</p>
+          <p>${item.price}</p>
+          <a href="${item.url}" target="_blank">open</a>
         </div>
       `;
     });
