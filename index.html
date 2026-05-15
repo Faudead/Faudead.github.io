@@ -2,6 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wishlist</title>
 
 <style>
@@ -10,30 +11,32 @@ body {
   background: #0f172a;
   color: white;
   margin: 0;
-  padding: 20px;
+  padding: 16px;
+  -webkit-tap-highlight-color: transparent;
 }
 
-h1 { margin-bottom: 15px; }
+h1 {
+  margin-bottom: 12px;
+}
 
-/* controls */
 .controls {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 input, select {
-  padding: 8px;
-  border-radius: 8px;
+  padding: 10px;
+  border-radius: 10px;
   border: none;
+  outline: none;
 }
 
-/* grid */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
 }
 
 /* CARD */
@@ -46,60 +49,68 @@ input, select {
 }
 
 .card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   border-color: #3b82f6;
 }
 
-/* IMAGE — FIX (no crop) */
+/* IMAGE FIX */
 .card img {
   width: 100%;
-  height: 180px;
-  object-fit: contain;   /* 🔥 ключова зміна */
+  height: 170px;
+  object-fit: contain;
   background: #0b1220;
   padding: 10px;
 }
 
 /* CONTENT */
 .content {
-  padding: 14px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
-/* labels */
 .label {
-  font-size: 11px;
+  font-size: 10px;
   opacity: 0.6;
   text-transform: uppercase;
-  letter-spacing: 1px;
 }
 
-.value {
-  font-size: 14px;
-}
-
-/* title */
 .title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
 }
 
-/* price highlight */
+.category {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
 .price {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
   color: #34d399;
 }
 
-/* link */
 a {
   color: #60a5fa;
   text-decoration: none;
+  font-size: 14px;
 }
 
-a:hover {
-  text-decoration: underline;
+button {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+  font-weight: bold;
+}
+
+button.bought {
+  background: #16a34a;
 }
 </style>
 </head>
@@ -129,6 +140,7 @@ const SHEET_ID = "1Wgs2XgmamRKgoEd_R4Z2tbOa21h8t6UjlslB62hAtYs";
 const URL = `https://opensheet.elk.sh/${SHEET_ID}/Sheet1`;
 
 let data = [];
+let bought = JSON.parse(localStorage.getItem("bought") || "{}");
 
 fetch(URL)
   .then(r => r.json())
@@ -180,38 +192,40 @@ function applyFilters() {
   render(filtered);
 }
 
+function toggleBought(title) {
+  bought[title] = !bought[title];
+  localStorage.setItem("bought", JSON.stringify(bought));
+  render(data);
+}
+
 function render(items) {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
 
   items.forEach(item => {
+    const isBought = bought[item.title];
+
     grid.innerHTML += `
       <div class="card">
-
         <img src="${item.image || ''}">
 
         <div class="content">
+          <div class="label">Category</div>
+          <div class="category">${item.category}</div>
 
-          <div>
-            <div class="label">Title</div>
-            <div class="title">${item.title}</div>
-          </div>
+          <div class="label">Title</div>
+          <div class="title">${item.title}</div>
 
-          <div>
-            <div class="label">Category</div>
-            <div class="value">${item.category}</div>
-          </div>
+          <div class="label">Price</div>
+          <div class="price">${item.price}</div>
 
-          <div>
-            <div class="label">Price</div>
-            <div class="price">${item.price}</div>
-          </div>
+          <div class="label">Link</div>
+          <a href="${item.url}" target="_blank">open</a>
 
-          <div>
-            <div class="label">Link</div>
-            <a href="${item.url}" target="_blank">open product</a>
-          </div>
-
+          <button class="${isBought ? 'bought' : ''}"
+                  onclick="toggleBought('${item.title}')">
+            ${isBought ? '✔ Куплено' : 'Mark as bought'}
+          </button>
         </div>
       </div>
     `;
