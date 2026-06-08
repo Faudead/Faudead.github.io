@@ -16,7 +16,12 @@ body{
   font-family:Arial;
 }
 
-.tabs{display:flex;gap:10px;margin-bottom:16px;}
+.tabs{
+  display:flex;
+  gap:10px;
+  margin-bottom:16px;
+}
+
 .tab-btn{
   padding:10px 14px;
   background:#1e293b;
@@ -24,7 +29,11 @@ body{
   color:#94a3b8;
   border-radius:10px;
 }
-.tab-btn.active{background:#2563eb;color:white;}
+
+.tab-btn.active{
+  background:#2563eb;
+  color:white;
+}
 
 .tab-content{display:none;}
 .tab-content.active{display:block;}
@@ -41,11 +50,20 @@ body{
   padding:12px;
 }
 
+.big{font-size:28px;font-weight:bold;color:#22c55e;}
 .small{color:#94a3b8;font-size:13px;}
-.big{font-size:26px;font-weight:bold;color:#22c55e;}
 
-.chart-wrapper{height:220px;}
-img{width:100%;height:160px;object-fit:contain;background:#0b1220;border-radius:8px;}
+.chart{
+  height:240px;
+}
+
+img{
+  width:100%;
+  height:160px;
+  object-fit:contain;
+  background:#0b1220;
+  border-radius:8px;
+}
 
 button{
   margin-top:8px;
@@ -55,15 +73,27 @@ button{
   background:#2563eb;
   color:white;
 }
+button.bought{background:#16a34a;}
 
+input,select{
+  padding:10px;
+  border-radius:10px;
+  border:none;
+}
+.controls{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+}
 </style>
 </head>
 
 <body>
 
 <div class="tabs">
-  <button class="tab-btn active" onclick="switchTab('budget',this)">📊 Бюджет</button>
-  <button class="tab-btn" onclick="switchTab('wish',this)">🎁 Wishlist</button>
+  <button class="tab-btn active" onclick="tab('budget',this)">📊 Бюджет</button>
+  <button class="tab-btn" onclick="tab('wish',this)">🎁 Wishlist</button>
 </div>
 
 <!-- ================= BUDGET ================= -->
@@ -73,42 +103,61 @@ button{
 
     <div class="card">
       <div class="small">💰 Залишок</div>
-      <div id="freeMoney" class="big">0 ₴</div>
+      <div id="free" class="big">0 ₴</div>
       <div id="info" class="small"></div>
     </div>
 
     <div class="card">
-      <div class="small">Доходи / витрати</div>
-      <div class="chart-wrapper">
-        <canvas id="freeChart"></canvas>
+      <div class="small">Гроші</div>
+      <div class="chart">
+        <canvas id="moneyChart"></canvas>
       </div>
     </div>
 
     <div class="card">
-      <div class="small">Куди пішло</div>
-      <div class="chart-wrapper">
-        <canvas id="factChart"></canvas>
+      <div class="small">Витрати</div>
+      <div class="chart">
+        <canvas id="expenseChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="small">План</div>
+      <div class="chart">
+        <canvas id="planChart"></canvas>
       </div>
     </div>
 
   </div>
-
 </div>
 
 <!-- ================= WISHLIST ================= -->
 <div id="wish" class="tab-content">
 
   <h2>Wishlist</h2>
-  <div id="grid"></div>
 
+  <div class="controls">
+    <input id="search" placeholder="Пошук...">
+    <select id="category">
+      <option value="all">Всі</option>
+    </select>
+    <select id="sort">
+      <option value="none">Сортування</option>
+      <option value="asc">↑ дешевші</option>
+      <option value="desc">↓ дорожчі</option>
+    </select>
+  </div>
+
+  <div id="grid" class="grid"></div>
 </div>
 
 <script>
 
+let data=[];
 let wishlist=[];
 let bought=JSON.parse(localStorage.getItem("bought")||"{}");
 
-function switchTab(id,btn){
+function tab(id,btn){
   document.querySelectorAll(".tab-content").forEach(e=>e.classList.remove("active"));
   document.querySelectorAll(".tab-btn").forEach(e=>e.classList.remove("active"));
   document.getElementById(id).classList.add("active");
@@ -117,13 +166,15 @@ function switchTab(id,btn){
 
 fetch("data.json?t="+Date.now())
 .then(r=>r.json())
-.then(data=>{
-  renderBudget(data.transactions||[]);
+.then(d=>{
+  data=d;
+  renderBudget(data.transactions||[], data.budget||[]);
   wishlist=data.wishlist||[];
   renderWishlist(wishlist);
+  setupFilters(wishlist);
 });
 
-function renderBudget(transactions){
+function renderBudget(tr){
 
   let income=0;
   let expense=0;
@@ -137,9 +188,9 @@ function renderBudget(transactions){
     "інше":0
   };
 
-  transactions.forEach(t=>{
+  tr.forEach(t=>{
     let type=t["Тип"];
-    let sum=parseFloat(t["Сума"]||0);
+    let sum=Number(t["Сума"]||0);
     let cat=(t["Категорія"]||"").toLowerCase();
 
     if(type==="Дохід") income+=sum;
@@ -147,26 +198,23 @@ function renderBudget(transactions){
     if(type==="Витрата"){
       expense+=sum;
 
-      if(cat.includes("орен")) cats["оренда"]+=sum;
-      else if(cat.includes("комун")) cats["комуналка"]+=sum;
-      else if(cat.includes("їж")) cats["їжа"]+=sum;
-      else if(cat.includes("транс")) cats["транспорт"]+=sum;
+      if(cat.includes("орен")) cats.оренда+=sum;
+      else if(cat.includes("комун")) cats.комуналка+=sum;
+      else if(cat.includes("їж")) cats.їжа+=sum;
+      else if(cat.includes("транс")) cats.транспорт+=sum;
       else if(cat.includes("зв")) cats["зв'язок"]+=sum;
-      else cats["інше"]+=sum;
+      else cats.інше+=sum;
     }
   });
 
   let free=income-expense;
 
-  document.getElementById("freeMoney").innerText=
-    free.toLocaleString()+" ₴";
-
+  document.getElementById("free").innerText=free.toLocaleString()+" ₴";
   document.getElementById("info").innerText=
     `Дохід ${income} ₴ | Витрати ${expense} ₴`;
 
-  // ===== FREE CHART =====
-  new Chart(document.getElementById("freeChart"),{
-    type:"doughnut",
+  new Chart(document.getElementById("moneyChart"),{
+    type:"pie",
     data:{
       labels:["Дохід","Витрати","Залишок"],
       datasets:[{
@@ -176,20 +224,38 @@ function renderBudget(transactions){
     }
   });
 
-  // ===== FACT CHART =====
-  new Chart(document.getElementById("factChart"),{
-    type:"doughnut",
+  new Chart(document.getElementById("expenseChart"),{
+    type:"pie",
     data:{
       labels:Object.keys(cats),
       datasets:[{
         data:Object.values(cats),
         backgroundColor:[
-          "#3b82f6",
-          "#64748b",
-          "#22c55e",
-          "#eab308",
-          "#a855f7",
-          "#94a3b8"
+          "#3b82f6","#64748b","#22c55e",
+          "#eab308","#a855f7","#94a3b8"
+        ]
+      }]
+    }
+  });
+
+  let planCats = {
+    "оренда":12000,
+    "комуналка":3000,
+    "їжа":8000,
+    "транспорт":2000,
+    "зв'язок":1000,
+    "інше":1000
+  };
+
+  new Chart(document.getElementById("planChart"),{
+    type:"pie",
+    data:{
+      labels:Object.keys(planCats),
+      datasets:[{
+        data:Object.values(planCats),
+        backgroundColor:[
+          "#60a5fa","#94a3b8","#22c55e",
+          "#fbbf24","#a78bfa","#64748b"
         ]
       }]
     }
@@ -197,24 +263,63 @@ function renderBudget(transactions){
 
 }
 
-function renderWishlist(items){
-  let grid=document.getElementById("grid");
-  grid.innerHTML="";
+function setupFilters(list){
+  const set=new Set(list.map(i=>i.category).filter(Boolean));
+  const cat=document.getElementById("category");
 
-  items.forEach(i=>{
-    const title=i.title||i.Назва||"";
-    const price=i.price||i.Ціна||"";
-    const img=i.image||i.Картинка||"";
-    const url=i.url||i.Посилання||"#";
-    const cat=i.category||i.Категорія||"";
+  set.forEach(c=>{
+    cat.innerHTML+=`<option value="${c}">${c}</option>`;
+  });
 
-    grid.innerHTML+=`
+  search.oninput=apply;
+  category.onchange=apply;
+  sort.onchange=apply;
+}
+
+function apply(){
+  let f=[...wishlist];
+
+  let s=search.value.toLowerCase();
+  let c=category.value;
+  let sort=sort.value;
+
+  if(s) f=f.filter(i=>(i.title||"").toLowerCase().includes(s));
+  if(c!=="all") f=f.filter(i=>i.category===c);
+
+  if(sort==="asc") f.sort((a,b)=>Number(a.price)-Number(b.price));
+  if(sort==="desc") f.sort((a,b)=>Number(b.price)-Number(a.price));
+
+  renderWishlist(f);
+}
+
+function toggle(title){
+  bought[title]=!bought[title];
+  localStorage.setItem("bought",JSON.stringify(bought));
+  renderWishlist(wishlist);
+}
+
+function renderWishlist(list){
+
+  let g=document.getElementById("grid");
+  g.innerHTML="";
+
+  list.forEach(i=>{
+
+    let t=i.title||"";
+    let p=Number(i.price||0);
+
+    let is=bought[t];
+
+    g.innerHTML+=`
       <div class="card">
-        <img src="${img}" onerror="this.style.display='none'">
-        <div>${title}</div>
-        <div class="small">${cat}</div>
-        <div>${price} ₴</div>
-        <a href="${url}" target="_blank">відкрити</a>
+        <img src="${i.image||""}">
+        <div>${t}</div>
+        <div class="small">${i.category||""}</div>
+        <div>${p} ₴</div>
+        <a href="${i.url||"#"}" target="_blank">відкрити</a>
+        <button class="${is?"bought":""}" onclick="toggle(${JSON.stringify(t)})">
+          ${is?"✔ куплено":"купити"}
+        </button>
       </div>
     `;
   });
