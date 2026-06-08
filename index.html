@@ -21,7 +21,7 @@ h1 {
   margin-bottom: 16px;
 }
 
-/* Блок логування помилок */
+/* Блок сповіщень */
 #debug-log {
   background: #1e1b4b;
   border: 1px solid #818cf8;
@@ -248,7 +248,7 @@ button.bought {
   <div class="budget-header">
     <div>
       <h1 style="margin:0;">Фінансовий моніторинг</h1>
-      <p id="income-summary" style="margin:4px 0 0 0; color:#94a3b8; font-size:14px;">Обробка транзакцій...</p>
+      <p id="income-summary" style="margin:4px 0 0 0; color:#94a3b8; font-size:14px;">Очікування локальних даних...</p>
     </div>
     <div class="free-money-box">
       <div class="free-title">💰 Вільно зараз</div>
@@ -292,11 +292,8 @@ button.bought {
 </div>
 
 <script>
-const SHEET_ID = "1W0Lm4Rf9UGrzNPf4JD9Io_XfroqOnrAf"; 
-
-const URL_TRANSACTIONS = `https://opensheet.elk.sh/${SHEET_ID}/Транзакції`;
-const URL_BUDGET       = `https://opensheet.elk.sh/${SHEET_ID}/Бюджет`;
-const URL_WISHLIST     = `https://opensheet.elk.sh/${SHEET_ID}/Wishlist`; // Змінено на стандартну назву
+// Читаємо єдиний файл, згенерований Пайтоном
+const DATA_FILE = "data.json";
 
 let wishlistData = [];
 let bought = JSON.parse(localStorage.getItem("bought") || "{}");
@@ -314,29 +311,32 @@ function switchTab(tabId, btn) {
   btn.classList.add('active');
 }
 
-// Завантаження фінансових вкладок
-Promise.all([
-  fetch(URL_TRANSACTIONS).then(r => r.json()).catch(() => []),
-  fetch(URL_BUDGET).then(r => r.json()).catch(() => [])
-]).then(([transactions, budget]) => {
-  renderBudgetDashboard(transactions, budget);
-});
-
-// Автономне завантаження списку бажань (щоб не блокувати головний екран)
-fetch(URL_WISHLIST)
-  .then(r => r.json())
+// Завантаження локального JSON
+fetch(DATA_FILE)
+  .then(r => {
+    if (!r.ok) throw new Error("Файл data.json не знайдено або не створено скриптом.");
+    return r.json();
+  })
   .then(data => {
-    if (Array.isArray(data) && data.length > 0 && (data[0].title || data[0].Назва)) {
-      wishlistData = data;
+    const transactions = data.transactions || [];
+    const budget = data.budget || [];
+    const wishlist = data.wishlist || [];
+
+    // Відображаємо фінанси
+    renderBudgetDashboard(transactions, budget);
+
+    // Перевіряємо чи є у вішлісті валідні поля (Назва/title)
+    if (wishlist.length > 0 && (wishlist[0].title || wishlist[0].Назва || wishlist[0].category || wishlist[0].Категорія)) {
+      wishlistData = wishlist;
       setupWishlistFilters(wishlistData);
       renderWishlist(wishlistData);
     } else {
-      showInfoMessage("ℹ️ Вкладку бажань 'Wishlist' не знайдено (або вона пуста). Моніторинг працює автономно.");
       renderWishlist([]);
     }
   })
-  .catch(() => {
-    renderWishlist([]);
+  .catch(err => {
+    document.getElementById('income-summary').innerText = "Помилка завантаження. Спершу запусти Пайтон скрипт update_data.py";
+    showInfoMessage(`❌ Не вдалося зчитати дані: ${err.message}`);
   });
 
 function renderBudgetDashboard(transactions, budget) {
@@ -344,12 +344,7 @@ function renderBudgetDashboard(transactions, budget) {
   let factExpense = 0;
   let expensesByCategory = {};
 
-  if (!Array.isArray(transactions) || transactions.length === 0) {
-    document.getElementById('income-summary').innerText = "Помилка: Не вдалося зчитати транзакції.";
-    return;
-  }
-
-  // Чистий прорахунок транзакцій
+  // Математичний розрахунок транзакцій
   transactions.forEach(tx => {
     const type = tx["Тип"] || tx["тип"];
     const category = tx["Категорія"] || tx["категорія"];
@@ -370,32 +365,30 @@ function renderBudgetDashboard(transactions, budget) {
   let planExpensesTotal = 0;
   let isExpenseSection = false;
 
-  if (Array.isArray(budget)) {
-    budget.forEach(row => {
-      const values = Object.values(row).map(v => String(v).trim());
-      if (values.length === 0 || !values[0]) return;
+  budget.forEach(row => {
+    const values = Object.values(row).map(v => String(v).trim());
+    if (values.length === 0 || !values[0]) return;
 
-      const firstCell = values[0];
-      if (firstCell.includes("Планові доходы") || firstCell.includes("Планові доходи") || firstCell.includes("Скіко очікується")) return;
-      if (firstCell.includes("Планові витрати")) {
-        isExpenseSection = true;
-        return;
+    const firstCell = values[0];
+    if (firstCell.includes("Планові доходы") || firstCell.includes("Планові доходи") || firstCell.includes("Скіко очікується")) return;
+    if (firstCell.includes("Планові витрати")) {
+      isExpenseSection = true;
+      return;
+    }
+    if (firstCell === "Стаття" || firstCell === "Категорія") return;
+
+    const name = firstCell;
+    const planSum = parseFloat(values[1]) || 0;
+
+    if (name && planSum > 0) {
+      if (!isExpenseSection) {
+        planIncomeTotal += planSum;
+      } else {
+        planExpensesByCategory[name] = planSum;
+        planExpensesTotal += planSum;
       }
-      if (firstCell === "Стаття" || firstCell === "Категорія") return;
-
-      const name = firstCell;
-      const planSum = parseFloat(values[1]) || 0;
-
-      if (name && planSum > 0) {
-        if (!isExpenseSection) {
-          planIncomeTotal += planSum;
-        } else {
-          planExpensesByCategory[name] = planSum;
-          planExpensesTotal += planSum;
-        }
-      }
-    });
-  }
+    }
+  });
 
   const freeMoney = factIncome - factExpense;
 
@@ -407,7 +400,7 @@ function renderBudgetDashboard(transactions, budget) {
 
   const chartColors = ['#6366f1', '#3b82f6', '#10b981', '#eab308', '#f43f5e', '#a855f7', '#f97316', '#06b6d4', '#ec4899', '#14b8a6'];
 
-  // Малюємо графіки
+  // Дашборди
   new Chart(document.getElementById('planChart'), {
     type: 'doughnut',
     data: {
@@ -437,7 +430,7 @@ function renderBudgetDashboard(transactions, budget) {
   });
 }
 
-// --- Фільтрація побажань ---
+// --- Логіка Вішліста ---
 function setupWishlistFilters(data) {
   if (!data || data.length === 0) return;
   const categories = [...new Set(data.map(i => i.category || i.Категорія).filter(Boolean))];
@@ -471,7 +464,7 @@ function renderWishlist(items) {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
   if (!items || items.length === 0) {
-    grid.innerHTML = "<p style='color:#94a3b8; font-size:14px; padding:10px;'>Вкладку бажань не активовано. Моніторинг бюджету працює у штатному режимі.</p>";
+    grid.innerHTML = "<p style='color:#94a3b8; font-size:14px; padding:10px;'>Список бажань пустий або не активований у Пайтоні.</p>";
     return;
   }
   items.forEach(item => {
