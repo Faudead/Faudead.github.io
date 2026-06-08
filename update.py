@@ -18,7 +18,19 @@ def write_log(msg):
         f.write(msg + "\n")
 
 
-def load_google_sheet_xlsx(sheet_id, name):
+def clean_df(df):
+    # прибираємо NaN і Timestamp проблеми
+    df = df.fillna("")
+
+    def convert(x):
+        if isinstance(x, pd.Timestamp):
+            return x.isoformat()
+        return str(x)
+
+    return df.map(convert)
+
+
+def load_sheet_xlsx(sheet_id, name):
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
 
     write_log(f"\n===== {name} =====")
@@ -31,7 +43,7 @@ def load_google_sheet_xlsx(sheet_id, name):
         write_log(f"Content-Type: {res.headers.get('Content-Type')}")
 
         if res.status_code != 200:
-            write_log("❌ Помилка завантаження")
+            write_log("❌ HTTP помилка")
             write_log(res.text[:300])
             return {}
 
@@ -39,14 +51,19 @@ def load_google_sheet_xlsx(sheet_id, name):
 
         write_log(f"📄 Вкладки: {xls.sheet_names}")
 
-        sheets_data = {}
+        result = {}
 
         for sheet in xls.sheet_names:
             df = pd.read_excel(xls, sheet_name=sheet)
-            sheets_data[sheet] = df.fillna("").to_dict(orient="records")
-            write_log(f"   ✅ {sheet}: {len(sheets_data[sheet])} рядків")
 
-        return sheets_data
+            df = clean_df(df)
+
+            data = df.to_dict(orient="records")
+            result[sheet] = data
+
+            write_log(f"   ✅ {sheet}: {len(data)} рядків")
+
+        return result
 
     except Exception as e:
         write_log("❌ КРИТИЧНА ПОМИЛКА")
@@ -54,26 +71,31 @@ def load_google_sheet_xlsx(sheet_id, name):
         return {}
 
 
-# init log
+# ===== INIT LOG =====
 with open(log_path, "w", encoding="utf-8") as f:
     f.write("Початок синхронізації...\n")
 
+
 data = {
     "budget": {},
-    "wishlist": {}
+    "transactions": [],
+    "wishlist": []
 }
 
-# --- BUDGET SHEET ---
-budget_sheets = load_google_sheet_xlsx(BUDGET_ID, "BUDGET")
+# ===== BUDGET SHEET =====
+budget_sheets = load_sheet_xlsx(BUDGET_ID, "BUDGET")
 
-data["budget"] = budget_sheets.get("Бюджет", [])
 data["transactions"] = budget_sheets.get("Транзакції", [])
+data["budget"] = budget_sheets.get("Бюджет", [])
+data["dovidnyky"] = budget_sheets.get("Довідники", [])
 
-# --- WISHLIST SHEET ---
-wishlist_sheets = load_google_sheet_xlsx(WISHLIST_ID, "WISHLIST")
-data["wishlist"] = wishlist_sheets.get("Sheet1", [])  # або "Лист1" якщо перейменований
+# ===== WISHLIST SHEET =====
+wishlist_sheets = load_sheet_xlsx(WISHLIST_ID, "WISHLIST")
 
-# save json
+# зазвичай Sheet1 або Лист1
+data["wishlist"] = wishlist_sheets.get("Sheet1") or wishlist_sheets.get("Лист1") or []
+
+# ===== SAVE JSON =====
 with open(json_path, "w", encoding="utf-8") as f:
     json.dump(data, f, ensure_ascii=False, indent=2)
 
