@@ -5,290 +5,238 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Мій Простір: Бюджет та Бажання</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
 body { font-family: Arial, sans-serif; background: #0f172a; color: white; margin: 0; padding: 16px; -webkit-tap-highlight-color: transparent; }
 h1 { margin-bottom: 16px; }
-#debug-log { background: #1e1b4b; border: 1px solid #818cf8; border-radius: 10px; padding: 12px; margin-bottom: 16px; font-family: monospace; font-size: 12px; color: #c7d2fe; display: none; }
+
+#debug-log {
+  background: #1e1b4b;
+  border: 1px solid #818cf8;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #c7d2fe;
+  display: none;
+}
+
 .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
-.tab-btn { background: #1e293b; color: #94a3b8; padding: 10px 20px; border-radius: 10px; border: 1px solid #334155; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s; }
-.tab-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
+.tab-btn { background: #1e293b; color: #94a3b8; padding: 10px 20px; border-radius: 10px; border: 1px solid #334155; cursor: pointer; font-weight: bold; font-size: 14px; }
+.tab-btn.active { background: #2563eb; color: white; }
+
 .tab-content { display: none; }
 .tab-content.active { display: block; }
-.budget-header { background: #1e293b; border: 1px solid #334155; border-radius: 14px; padding: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
-.free-money-box { text-align: right; }
-.free-title { font-size: 11px; color: #34d399; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+
+.budget-header {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
 .free-amount { font-size: 32px; font-weight: bold; color: #34d399; }
-.budget-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.chart-card { background: #1e293b; border-radius: 14px; border: 1px solid #334155; padding: 16px; display: flex; flex-direction: column; align-items: center; }
-.chart-card h3 { margin: 0 0 4px 0; font-size: 16px; text-align: center; }
-.chart-card p { margin: 0 0 16px 0; font-size: 12px; color: #94a3b8; text-align: center; }
-.chart-wrapper { position: relative; width: 100%; height: 220px; }
-.controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-input, select { padding: 10px; border-radius: 10px; background: #1e293b; color: white; border: 1px solid #334155; outline: none; }
+
+.chart-card {
+  background: #1e293b;
+  border-radius: 14px;
+  border: 1px solid #334155;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.chart-wrapper { width: 100%; height: 220px; }
+
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-.card { background: #1e293b; border-radius: 14px; overflow: hidden; border: 1px solid #334155; transition: 0.2s; }
-.card:hover { transform: translateY(-3px); border-color: #3b82f6; }
-.card img { width: 100%; height: 170px; object-fit: contain; background: #0b1220; padding: 10px; box-sizing: border-box; }
-.content { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
-.label { font-size: 10px; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; }
-.category { font-size: 13px; opacity: 0.8; }
-.title { font-size: 16px; font-weight: bold; }
-.price { font-size: 16px; font-weight: bold; color: #34d399; }
-a { color: #60a5fa; text-decoration: none; font-size: 14px; }
-button { margin-top: 8px; padding: 10px; border-radius: 10px; border: none; cursor: pointer; background: #2563eb; color: white; font-weight: bold; }
+
+.card {
+  background: #1e293b;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #334155;
+}
+
+.card img { width: 100%; height: 170px; object-fit: contain; background: #0b1220; padding: 10px; }
+
+.content { padding: 12px; }
+
+button {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+  font-weight: bold;
+}
+
 button.bought { background: #16a34a; }
+
 </style>
 </head>
+
 <body>
 
-<div id="debug-log"><strong>Статус синхронізації:</strong><br></div>
-
 <div class="tabs">
-  <button class="tab-btn active" onclick="switchTab('budget-tab', this)">📊 Бюджет та Моніторинг</button>
-  <button class="tab-btn" onclick="switchTab('wishlist-tab', this)">🎁 Список бажань</button>
+  <button class="tab-btn active" onclick="switchTab('budget-tab', this)">📊 Бюджет</button>
+  <button class="tab-btn" onclick="switchTab('wishlist-tab', this)">🎁 Wishlist</button>
 </div>
 
 <div id="budget-tab" class="tab-content active">
+
   <div class="budget-header">
     <div>
-      <h1 style="margin:0;">Фінансовий моніторинг</h1>
-      <p id="income-summary" style="margin:4px 0 0 0; color:#94a3b8; font-size:14px;">Завантаження фінансових даних...</p>
+      <h1 style="margin:0;">Фінанси</h1>
+      <p id="income-summary">Завантаження...</p>
     </div>
-    <div class="free-money-box">
-      <div class="free-title">💰 Вільно зараз</div>
+    <div>
+      <div>💰 Вільно</div>
       <div id="free-money" class="free-amount">0 ₴</div>
     </div>
   </div>
 
-  <div class="budget-grid">
-    <div class="chart-card">
-      <h3>1. Розподіл лімітів (План)</h3>
-      <p>Куди планували розподілити кошти</p>
-      <div class="chart-wrapper"><canvas id="planChart"></canvas></div>
-    </div>
-    
-    <div class="chart-card">
-      <h3>2. Куди вже пішло (Факт)</h3>
-      <p>Реальні витрати з транзакцій</p>
-      <div class="chart-wrapper"><canvas id="factChart"></canvas></div>
+  <div class="chart-card">
+    <h3>Бюджет використання</h3>
+
+    <!-- 🔥 НОВИЙ БЛОК -->
+    <div style="text-align:center; margin-bottom:10px; font-size:14px; color:#94a3b8;">
+      <div id="budget-used">—</div>
+      <div id="budget-remaining">—</div>
+      <div id="budget-total">—</div>
     </div>
 
-    <div class="chart-card">
-      <h3>3. Освоєння бюджету</h3>
-      <p id="progress-desc">Витрачено із загального ліміту планових витрат</p>
-      <div class="chart-wrapper"><canvas id="progressChart"></canvas></div>
+    <div class="chart-wrapper">
+      <canvas id="progressChart"></canvas>
     </div>
   </div>
+
 </div>
 
 <div id="wishlist-tab" class="tab-content">
-  <h1>Список бажань</h1>
-  <div class="controls">
-    <input id="search" placeholder="Пошук...">
-    <select id="category"><option value="all">Всі категорії</option></select>
-    <select id="sort">
-      <option value="none">Сортування</option>
-      <option value="asc">Ціна ↑</option>
-      <option value="desc">Ціна ↓</option>
-    </select>
-  </div>
+  <h1>Wishlist</h1>
   <div class="grid" id="grid"></div>
 </div>
 
 <script>
+
 let wishlistData = [];
 let bought = JSON.parse(localStorage.getItem("bought") || "{}");
 
-function showInfoMessage(msg) {
-  const logBox = document.getElementById('debug-log');
-  logBox.style.display = 'block';
-  logBox.innerHTML += msg + '<br>';
-}
-
-function switchTab(tabId, btn) {
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(tabId).classList.add('active');
+function switchTab(id, btn){
+  document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
   btn.classList.add('active');
 }
 
-// Функція нормалізації апострофів для точного зведення категорій
-function normalizeStr(str) {
-  if (!str) return "";
-  return String(str).trim().toLowerCase().replace(/[\u2019\u2018\u201b\u02bc`']/g, "'");
+function normalizeStr(str){
+  return (str||"").toLowerCase().trim();
 }
 
-fetch("data.json?t=" + new Date().getTime())
-  .then(r => {
-    if (!r.ok) throw new Error("Файл data.json не знайдено.");
-    return r.json();
-  })
-  .then(data => {
-    renderBudgetDashboard(data.transactions || [], data.budget || []);
-    const wl = data.wishlist || [];
-    if (wl.length > 0 && (wl[0].title || wl[0].Назва || wl[0].category || wl[0].Категорія)) {
-      wishlistData = wl;
-      setupWishlistFilters(wishlistData);
-      renderWishlist(wishlistData);
-    } else {
-      renderWishlist([]);
-    }
-  })
-  .catch(err => {
-    document.getElementById('income-summary').innerText = "Помилка відображення даних.";
-    showInfoMessage(`❌ Статус: ${err.message}`);
+fetch("data.json?t=" + Date.now())
+.then(r=>r.json())
+.then(data=>{
+
+  renderBudget(data.transactions || [], data.budget || []);
+
+  wishlistData = data.wishlist || [];
+  renderWishlist(wishlistData);
+
+});
+
+function renderBudget(transactions, budget){
+
+  let income = 0;
+  let expense = 0;
+
+  transactions.forEach(t=>{
+    let type = t["Тип"] || "";
+    let sum = parseFloat(t["Сума"] || 0);
+
+    if(type==="Дохід") income += sum;
+    if(type==="Витрата") expense += sum;
   });
 
-function renderBudgetDashboard(transactions, budget) {
-  let factIncome = 0, factExpense = 0, expensesByCategory = {};
+  let planTotal = 0;
 
-  // 1. Рахуємо реальні транзакції
-  transactions.forEach(tx => {
-    const type = tx["Тип"] || tx["тип"];
-    const rawCategory = tx["Категорія"] || tx["категорія"];
-    const sum = parseFloat(tx["Сума"] || tx["сума"]) || 0;
-
-    if (type === "Дохід") {
-      factIncome += sum;
-    } else if (type === "Витрата") {
-      factExpense += sum;
-      if (rawCategory) {
-        const catKey = normalizeStr(rawCategory);
-        expensesByCategory[catKey] = (expensesByCategory[catKey] || 0) + sum;
-      }
-    }
+  budget.forEach(b=>{
+    let keys = Object.keys(b);
+    let val = parseFloat(b[keys[1]] || 0);
+    if(!isNaN(val)) planTotal += val;
   });
 
-  // 2. Розбираємо структуру бюджету на базі твого файлу
-  let planExpensesByCategory = {};
-  let planExpensesTotal = 0;
-  let isExpenseSection = false;
+  let remaining = Math.max(0, planTotal - expense);
 
-  budget.forEach(row => {
-    const keys = Object.keys(row);
-    if (keys.length === 0) return;
+  document.getElementById("income-summary").innerText =
+    `Дохід: ${income.toLocaleString()} ₴ | Витрати: ${expense.toLocaleString()} ₴`;
 
-    // Беремо значення перших двох колонок рядка
-    const firstCell = String(row[keys[0]] || "").trim();
-    const secondCell = String(row[keys[1]] || "").trim();
+  document.getElementById("free-money").innerText =
+    (income - expense).toLocaleString() + " ₴";
 
-    if (!firstCell) return;
+  // 🔥 нові підписи
+  document.getElementById("budget-used").innerText =
+    `Витрачено: ${expense.toLocaleString()} ₴`;
 
-    // Якщо добігли до роздільника витрат
-    if (firstCell.includes("Планові витрати")) {
-      isExpenseSection = true;
-      return;
-    }
-    // Пропускаємо технічні заголовки таблиць
-    if (firstCell === "Стаття" || firstCell === "Категорія" || firstCell.includes("Планові доходи") || firstCell.includes("Скіко очікується")) {
-      return;
-    }
+  document.getElementById("budget-remaining").innerText =
+    `Залишилось: ${remaining.toLocaleString()} ₴`;
 
-    const planSum = parseFloat(secondCell) || 0;
+  document.getElementById("budget-total").innerText =
+    `Всього план: ${planTotal.toLocaleString()} ₴`;
 
-    // Зберігаємо планові категорії, якщо ми у правильному розділі
-    if (isExpenseSection && planSum >= 0) {
-      const catKey = normalizeStr(firstCell);
-      planExpensesByCategory[catKey] = planSum;
-      planExpensesTotal += planSum;
+  new Chart(document.getElementById("progressChart"),{
+    type:"doughnut",
+    data:{
+      labels:["Витрачено","Залишилось"],
+      datasets:[{
+        data:[expense, remaining],
+        backgroundColor:["#ef4444","#334155"]
+      }]
+    },
+    options:{
+      plugins:{legend:{labels:{color:"white"}}}
     }
   });
 
-  // Мапимо красиві (оригінальні) назви для графіків, щоб усунути розбіжності апострофів
-  const displayPlanNames = {
-    "оренда": "Оренда", "комуналка": "Комуналка", "їжа": "Їжа", 
-    "транспорт": "Транспорт", "зв'язок": "Зв'язок", "побут": "Побут", 
-    "хотілки": "Хотілки", "медицина": "Медицина", "відкладення": "Відкладення", 
-    "англа": "Англійська", "кредит": "Кредит"
-  };
+}
 
-  let cleanPlanChartData = {};
-  let cleanFactChartData = {};
+function renderWishlist(items){
+  let grid = document.getElementById("grid");
+  grid.innerHTML = "";
 
-  // Зводимо план під гарні назви
-  Object.keys(planExpensesByCategory).forEach(k => {
-    const label = displayPlanNames[k] || k;
-    cleanPlanChartData[label] = planExpensesByCategory[k];
-  });
+  items.forEach(i=>{
+    let title = i.title || i.Назва || "";
+    let price = i.price || i.Ціна || "";
 
-  // Зводимо факт під гарні назви (все що не в списку плану кидаємо в "Інше")
-  Object.keys(expensesByCategory).forEach(k => {
-    const label = displayPlanNames[k] || "Інше";
-    cleanFactChartData[label] = (cleanFactChartData[label] || 0) + expensesByCategory[k];
-  });
-
-  const freeMoney = factIncome - factExpense;
-  document.getElementById('income-summary').innerText = `Фактично отримано доходу: ${factIncome.toLocaleString('uk-UA')} ₴ | Всього витрачено: ${factExpense.toLocaleString('uk-UA')} ₴`;
-  document.getElementById('free-money').innerText = freeMoney.toLocaleString('uk-UA') + ' ₴';
-  
-  const percentSpent = planExpensesTotal > 0 ? Math.round((factExpense / planExpensesTotal) * 100) : 0;
-  document.getElementById('progress-desc').innerText = `Витрачено ${factExpense.toLocaleString('uk-UA')} ₴ з планового ліміту ${planExpensesTotal.toLocaleString('uk-UA')} ₴ (${percentSpent}%)`;
-
-  const chartColors = ['#6366f1', '#3b82f6', '#10b981', '#eab308', '#f43f5e', '#a855f7', '#f97316', '#06b6d4', '#ec4899', '#14b8a6', '#64748b'];
-
-  // Перемальовуємо 3 графіки
-  new Chart(document.getElementById('planChart'), {
-    type: 'doughnut',
-    data: { labels: Object.keys(cleanPlanChartData), datasets: [{ data: Object.values(cleanPlanChartData), backgroundColor: chartColors, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-  });
-
-  new Chart(document.getElementById('factChart'), {
-    type: 'doughnut',
-    data: { labels: Object.keys(cleanFactChartData), datasets: [{ data: Object.values(cleanFactChartData), backgroundColor: chartColors, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-  });
-
-  const remainingPlan = Math.max(0, planExpensesTotal - factExpense);
-  new Chart(document.getElementById('progressChart'), {
-    type: 'doughnut',
-    data: { labels: ['Вже витрачено', 'Вільний ліміт'], datasets: [{ data: [factExpense, remainingPlan], backgroundColor: ['#f43f5e', '#334155'], borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } } }
+    grid.innerHTML += `
+      <div class="card">
+        <div class="content">
+          <div>${title}</div>
+          <div>${price} ₴</div>
+          <button onclick="toggle('${title}')">
+            ${bought[title] ? "✔ Куплено" : "Купити"}
+          </button>
+        </div>
+      </div>
+    `;
   });
 }
 
-function setupWishlistFilters(data) {
-  if (!data || data.length === 0) return;
-  const categories = [...new Set(data.map(i => i.category || i.Категорія).filter(Boolean))];
-  const cat = document.getElementById("category");
-  categories.forEach(c => { cat.innerHTML += `<option value="${c}">${c}</option>`; });
-  document.getElementById("search").addEventListener("input", applyWishlistFilters);
-  document.getElementById("category").addEventListener("change", applyWishlistFilters);
-  document.getElementById("sort").addEventListener("change", applyWishlistFilters);
-}
-
-function applyWishlistFilters() {
-  let filtered = [...wishlistData];
-  const search = document.getElementById("search").value.toLowerCase();
-  const category = document.getElementById("category").value;
-  const sort = document.getElementById("sort").value;
-  if (search) filtered = filtered.filter(i => (i.title || i.Назва || "").toLowerCase().includes(search));
-  if (category !== "all") filtered = filtered.filter(i => (i.category || i.Категорія) === category);
-  if (sort === "asc")  filtered.sort((a, b) => Number(a.price || a.Ціна) - Number(b.price || b.Ціна));
-  if (sort === "desc") filtered.sort((a, b) => Number(b.price || b.Ціна) - Number(a.price || a.Ціна));
-  renderWishlist(filtered);
-}
-
-function toggleBought(title) {
+function toggle(title){
   bought[title] = !bought[title];
   localStorage.setItem("bought", JSON.stringify(bought));
-  applyWishlistFilters();
+  renderWishlist(wishlistData);
 }
 
-function renderWishlist(items) {
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
-  if (!items || items.length === 0) { grid.innerHTML = "<p style='color:#94a3b8; font-size:14px; padding:10px;'>Список бажань порожній.</p>"; return; }
-  items.forEach(item => {
-    const title = item.title || item.Назва || '-';
-    const category = item.category || item.Категорія || '-';
-    const price = item.price || item.Ціна || '';
-    const url = item.url || item.Посилання || '#';
-    const image = item.image || item.Картинка || '';
-    const isBought = bought[title];
-    grid.innerHTML += `<div class="card"><img src="${image}" onerror="this.style.display='none'"><div class="content"><div class="label">Категорія</div><div class="category">${category}</div><div class="label">Назва</div><div class="title">${title}</div><div class="label">Ціна</div><div class="price">${price ? price + ' ₴' : '-'}</div><div class="label">Посилання</div><a href="${url}" target="_blank">відкрити товар</a><button class="${isBought ? 'bought' : ''}" onclick="toggleBought('${title}')">${isBought ? '✔ Куплено' : 'Позначити як куплено'}</button></div></div>`;
-  });
-}
 </script>
+
 </body>
 </html>
