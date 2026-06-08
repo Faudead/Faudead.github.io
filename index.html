@@ -4,156 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Мій Простір: Бюджет та Бажання</title>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #0f172a;
-  color: white;
-  margin: 0;
-  padding: 16px;
-  -webkit-tap-highlight-color: transparent;
-}
-
+body { font-family: Arial, sans-serif; background: #0f172a; color: white; margin: 0; padding: 16px; -webkit-tap-highlight-color: transparent; }
 h1 { margin-bottom: 16px; }
-
-#debug-log {
-  background: #1e1b4b;
-  border: 1px solid #818cf8;
-  border-radius: 10px;
-  padding: 12px;
-  margin-bottom: 16px;
-  font-family: monospace;
-  font-size: 12px;
-  color: #c7d2fe;
-  display: none;
-}
-
-.tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #334155;
-  padding-bottom: 8px;
-}
-
-.tab-btn {
-  background: #1e293b;
-  color: #94a3b8;
-  padding: 10px 20px;
-  border-radius: 10px;
-  border: 1px solid #334155;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 14px;
-  transition: 0.2s;
-}
-
-.tab-btn.active {
-  background: #2563eb;
-  color: white;
-  border-color: #2563eb;
-}
-
+#debug-log { background: #1e1b4b; border: 1px solid #818cf8; border-radius: 10px; padding: 12px; margin-bottom: 16px; font-family: monospace; font-size: 12px; color: #c7d2fe; display: none; }
+.tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+.tab-btn { background: #1e293b; color: #94a3b8; padding: 10px 20px; border-radius: 10px; border: 1px solid #334155; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s; }
+.tab-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
-
-.budget-header {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
+.budget-header { background: #1e293b; border: 1px solid #334155; border-radius: 14px; padding: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
 .free-money-box { text-align: right; }
-.free-title {
-  font-size: 11px;
-  color: #34d399;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-weight: bold;
-}
+.free-title { font-size: 11px; color: #34d399; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
 .free-amount { font-size: 32px; font-weight: bold; color: #34d399; }
-
-.budget-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.chart-card {
-  background: #1e293b;
-  border-radius: 14px;
-  border: 1px solid #334155;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
+.budget-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.chart-card { background: #1e293b; border-radius: 14px; border: 1px solid #334155; padding: 16px; display: flex; flex-direction: column; align-items: center; }
 .chart-card h3 { margin: 0 0 4px 0; font-size: 16px; text-align: center; }
 .chart-card p { margin: 0 0 16px 0; font-size: 12px; color: #94a3b8; text-align: center; }
 .chart-wrapper { position: relative; width: 100%; height: 220px; }
-
 .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-input, select {
-  padding: 10px;
-  border-radius: 10px;
-  background: #1e293b;
-  color: white;
-  border: 1px solid #334155;
-  outline: none;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
-}
-
-.card {
-  background: #1e293b;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid #334155;
-  transition: 0.2s;
-}
+input, select { padding: 10px; border-radius: 10px; background: #1e293b; color: white; border: 1px solid #334155; outline: none; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.card { background: #1e293b; border-radius: 14px; overflow: hidden; border: 1px solid #334155; transition: 0.2s; }
 .card:hover { transform: translateY(-3px); border-color: #3b82f6; }
-.card img {
-  width: 100%;
-  height: 170px;
-  object-fit: contain;
-  background: #0b1220;
-  padding: 10px;
-  box-sizing: border-box;
-}
-
+.card img { width: 100%; height: 170px; object-fit: contain; background: #0b1220; padding: 10px; box-sizing: border-box; }
 .content { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
 .label { font-size: 10px; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; }
 .category { font-size: 13px; opacity: 0.8; }
 .title { font-size: 16px; font-weight: bold; }
 .price { font-size: 16px; font-weight: bold; color: #34d399; }
 a { color: #60a5fa; text-decoration: none; font-size: 14px; }
-
-button {
-  margin-top: 8px;
-  padding: 10px;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  background: #2563eb;
-  color: white;
-  font-weight: bold;
-}
+button { margin-top: 8px; padding: 10px; border-radius: 10px; border: none; cursor: pointer; background: #2563eb; color: white; font-weight: bold; }
 button.bought { background: #16a34a; }
 </style>
 </head>
@@ -170,7 +52,7 @@ button.bought { background: #16a34a; }
   <div class="budget-header">
     <div>
       <h1 style="margin:0;">Фінансовий моніторинг</h1>
-      <p id="income-summary" style="margin:4px 0 0 0; color:#94a3b8; font-size:14px;">Очікування завантаження з Google...</p>
+      <p id="income-summary" style="margin:4px 0 0 0; color:#94a3b8; font-size:14px;">Завантаження фінансових даних...</p>
     </div>
     <div class="free-money-box">
       <div class="free-title">💰 Вільно зараз</div>
@@ -214,19 +96,10 @@ button.bought { background: #16a34a; }
 </div>
 
 <script>
-// Прямі ID твоїх таблиць, які я взяв з твого update.py
-const BUDGET_ID = "1W0Lm4Rf9UGrzNPf4JD9Io_XfroqOnrAf";
-const WISHLIST_ID = "1Wgs2XgmamRKgoEd_R4Z2tbOa21h8t6UjlslB62hAtYs";
-
-// Прямі посилання на CSV-експорт конкретних вкладок без посередників
-const URL_TX = `https://docs.google.com/spreadsheets/d/${BUDGET_ID}/export?format=csv&gid=33010173`;
-const URL_BG = `https://docs.google.com/spreadsheets/d/${BUDGET_ID}/export?format=csv&gid=1626297495`;
-const URL_WL = `https://docs.google.com/spreadsheets/d/${WISHLIST_ID}/export?format=csv&gid=0`;
-
 let wishlistData = [];
 let bought = JSON.parse(localStorage.getItem("bought") || "{}");
 
-function showMessage(msg) {
+function showInfoMessage(msg) {
   const logBox = document.getElementById('debug-log');
   logBox.style.display = 'block';
   logBox.innerHTML += msg + '<br>';
@@ -239,74 +112,30 @@ function switchTab(tabId, btn) {
   btn.classList.add('active');
 }
 
-// Функція розумного парсингу CSV рядків у масив об'єктів
-function parseCSV(text) {
-  const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
-  if (lines.length === 0) return [];
-  
-  // Парсимо заголовки з урахуванням лапок
-  const headers = lines[0].split(',').map(h => h.replace(/["']/g, "").trim());
-  
-  return lines.slice(1).map(line => {
-    // Регулярка для коректного розбиття CSV, навіть якщо всередині клітинок є коми
-    const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(',');
-    const obj = {};
-    headers.forEach((h, i) => {
-      let val = matches[i] ? matches[i].trim() : "";
-      obj[h] = val.replace(/^["']|["']$/g, "").trim();
-    });
-    return obj;
-  });
-}
-
-async function loadData() {
-  try {
-    // Стягуємо все наживо паралельно
-    const [resTx, resBg, resWl] = await Promise.all([
-      fetch(URL_TX).then(r => { if(!r.ok) throw new Error("Транзакції недоступні"); return r.text(); }),
-      fetch(URL_BG).then(r => { if(!r.ok) throw new Error("Бюджет недоступний"); return r.text(); }),
-      fetch(URL_WL).then(r => r.text()).catch(() => "")
-    ]);
-
-    const data = {
-      transactions: parseCSV(resTx),
-      budget: parseCSV(resBg),
-      wishlist: resWl ? parseCSV(resWl) : []
-    };
-
-    // Записуємо успішну копію у локальну пам'ять пристрою
-    localStorage.setItem("cached_financial_data", JSON.stringify(data));
-    renderAll(data);
-  } catch (err) {
-    // Офлайн режим: якщо гугл лежить, беремо з КЕШУ пристрою
-    const cached = localStorage.getItem("cached_financial_data");
-    if (cached) {
-      showMessage("ℹ️ Завантажено збережені дані з локального кешу смартфона.");
-      renderAll(JSON.parse(cached));
+// Завантаження згенерованого файлу
+fetch("data.json?t=" + new Date().getTime())
+  .then(r => {
+    if (!r.ok) throw new Error("Файл data.json ще не створено роботом GitHub.");
+    return r.json();
+  })
+  .then(data => {
+    renderBudgetDashboard(data.transactions || [], data.budget || []);
+    const wl = data.wishlist || [];
+    if (wl.length > 0 && (wl[0].title || wl[0].Назва || wl[0].category || wl[0].Категорія)) {
+      wishlistData = wl;
+      setupWishlistFilters(wishlistData);
+      renderWishlist(wishlistData);
     } else {
-      document.getElementById('income-summary').innerText = "Помилка доступу до Google Таблиць.";
-      showMessage(`❌ Не вдалося отримати дані: Перевір чи увімкнено доступ 'Усі, хто мають посилання' в обох таблицях.`);
+      renderWishlist([]);
     }
-  }
-}
-
-function renderAll(data) {
-  renderBudgetDashboard(data.transactions, data.budget);
-  
-  const wl = data.wishlist;
-  if (wl && wl.length > 0 && (wl[0].title || wl[0].Назва || wl[0].category || wl[0].Категорія)) {
-    wishlistData = wl;
-    setupWishlistFilters(wishlistData);
-    renderWishlist(wishlistData);
-  } else {
-    renderWishlist([]);
-  }
-}
+  })
+  .catch(err => {
+    document.getElementById('income-summary').innerText = "Очікування першого запуску автоматизації...";
+    showInfoMessage(`❌ Статус: ${err.message}. Запусти Workflow вручну у вкладці Actions на GitHub.`);
+  });
 
 function renderBudgetDashboard(transactions, budget) {
-  let factIncome = 0, factExpense = 0;
-  let expensesByCategory = {};
-
+  let factIncome = 0, factExpense = 0, expensesByCategory = {};
   transactions.forEach(tx => {
     const type = tx["Тип"] || tx["тип"];
     const category = tx["Категорія"] || tx["категорія"];
@@ -318,14 +147,11 @@ function renderBudgetDashboard(transactions, budget) {
     }
   });
 
-  let planIncomeTotal = 0, planExpensesTotal = 0;
-  let planExpensesByCategory = {};
+  let planIncomeTotal = 0, planExpensesTotal = 0, planExpensesByCategory = {};
   let isExpenseSection = false;
-
   budget.forEach(row => {
     const values = Object.values(row).map(v => String(v).trim());
     if (values.length === 0 || !values[0]) return;
-
     const firstCell = values[0];
     if (firstCell.includes("Планові доходы") || firstCell.includes("Планові доходи") || firstCell.includes("Скіко очікується")) return;
     if (firstCell.includes("Планові витрати")) { isExpenseSection = true; return; }
@@ -333,43 +159,22 @@ function renderBudgetDashboard(transactions, budget) {
 
     const name = firstCell;
     const planSum = parseFloat(values[1]) || 0;
-
     if (name && planSum > 0) {
       if (!isExpenseSection) planIncomeTotal += planSum;
-      else {
-        planExpensesByCategory[name] = planSum;
-        planExpensesTotal += planSum;
-      }
+      else { planExpensesByCategory[name] = planSum; planExpensesTotal += planSum; }
     }
   });
 
   const freeMoney = factIncome - factExpense;
   document.getElementById('income-summary').innerText = `Очікуваний дохід (План): ${planIncomeTotal.toLocaleString('uk-UA')} ₴ | Отримано фактично: ${factIncome.toLocaleString('uk-UA')} ₴`;
   document.getElementById('free-money').innerText = freeMoney.toLocaleString('uk-UA') + ' ₴';
-  
   const percentSpent = planExpensesTotal > 0 ? Math.round((factExpense / planExpensesTotal) * 100) : 0;
   document.getElementById('progress-desc').innerText = `Витрачено ${factExpense.toLocaleString('uk-UA')} ₴ з планового ліміту ${planExpensesTotal.toLocaleString('uk-UA')} ₴ (${percentSpent}%)`;
 
   const chartColors = ['#6366f1', '#3b82f6', '#10b981', '#eab308', '#f43f5e', '#a855f7', '#f97316', '#06b6d4', '#ec4899', '#14b8a6'];
-
-  new Chart(document.getElementById('planChart'), {
-    type: 'doughnut',
-    data: { labels: Object.keys(planExpensesByCategory), datasets: [{ data: Object.values(planExpensesByCategory), backgroundColor: chartColors, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-  });
-
-  new Chart(document.getElementById('factChart'), {
-    type: 'doughnut',
-    data: { labels: Object.keys(expensesByCategory), datasets: [{ data: Object.values(expensesByCategory), backgroundColor: chartColors, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-  });
-
-  const remainingPlan = Math.max(0, planExpensesTotal - factExpense);
-  new Chart(document.getElementById('progressChart'), {
-    type: 'doughnut',
-    data: { labels: ['Вже витрачено', 'Вільний ліміт'], datasets: [{ data: [factExpense, remainingPlan], backgroundColor: ['#f43f5e', '#334155'], borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } } }
-  });
+  new Chart(document.getElementById('planChart'), { type: 'doughnut', data: { labels: Object.keys(planExpensesByCategory), datasets: [{ data: Object.values(planExpensesByCategory), backgroundColor: chartColors, borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+  new Chart(document.getElementById('factChart'), { type: 'doughnut', data: { labels: Object.keys(expensesByCategory), datasets: [{ data: Object.values(expensesByCategory), backgroundColor: chartColors, borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+  new Chart(document.getElementById('progressChart'), { type: 'doughnut', data: { labels: ['Вже витрачено', 'Вільний ліміт'], datasets: [{ data: [factExpense, Math.max(0, planExpensesTotal - factExpense)], backgroundColor: ['#f43f5e', '#334155'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } } } });
 }
 
 function setupWishlistFilters(data) {
@@ -387,7 +192,6 @@ function applyWishlistFilters() {
   const search = document.getElementById("search").value.toLowerCase();
   const category = document.getElementById("category").value;
   const sort = document.getElementById("sort").value;
-  
   if (search) filtered = filtered.filter(i => (i.title || i.Назва || "").toLowerCase().includes(search));
   if (category !== "all") filtered = filtered.filter(i => (i.category || i.Категорія) === category);
   if (sort === "asc")  filtered.sort((a, b) => Number(a.price || a.Ціна) - Number(b.price || b.Ціна));
@@ -404,10 +208,7 @@ function toggleBought(title) {
 function renderWishlist(items) {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
-  if (!items || items.length === 0) {
-    grid.innerHTML = "<p style='color:#94a3b8; font-size:14px; padding:10px;'>Список бажань порожній або вкладку не знайдено.</p>";
-    return;
-  }
+  if (!items || items.length === 0) { grid.innerHTML = "<p style='color:#94a3b8; font-size:14px; padding:10px;'>Список бажань порожній.</p>"; return; }
   items.forEach(item => {
     const title = item.title || item.Назва || '-';
     const category = item.category || item.Категорія || '-';
@@ -415,23 +216,9 @@ function renderWishlist(items) {
     const url = item.url || item.Посилання || '#';
     const image = item.image || item.Картинка || '';
     const isBought = bought[title];
-    
-    grid.innerHTML += `
-      <div class="card">
-        <img src="${image}" onerror="this.style.display='none'">
-        <div class="content">
-          <div class="label">Категорія</div><div class="category">${category}</div>
-          <div class="label">Назва</div><div class="title">${title}</div>
-          <div class="label">Ціна</div><div class="price">${price ? price + ' ₴' : '-'}</div>
-          <div class="label">Посилання</div><a href="${url}" target="_blank">відкрити товар</a>
-          <button class="${isBought ? 'bought' : ''}" onclick="toggleBought('${title}')">${isBought ? '✔ Куплено' : 'Позначити як куплено'}</button>
-        </div>
-      </div>`;
+    grid.innerHTML += `<div class="card"><img src="${image}" onerror="this.style.display='none'"><div class="content"><div class="label">Категорія</div><div class="category">${category}</div><div class="label">Назва</div><div class="title">${title}</div><div class="label">Ціна</div><div class="price">${price ? price + ' ₴' : '-'}</div><div class="label">Посилання</div><a href="${url}" target="_blank">відкрити товар</a><button class="${isBought ? 'bought' : ''}" onclick="toggleBought('${title}')">${isBought ? '✔ Куплено' : 'Позначити як куплено'}</button></div></div>`;
   });
 }
-
-// Старт
-loadData();
 </script>
 </body>
 </html>
