@@ -39,7 +39,6 @@ body {
   min-height: 100vh;
   padding-bottom: 80px;
   line-height: 1.45;
-  letter-spacing: 0.2px;
 }
 
 /* HEADER */
@@ -95,7 +94,7 @@ body {
   border-color: rgba(85, 214, 160, 0.35);
 }
 
-/* TABS */
+/* LAYOUT */
 .tab { display: none; padding: 16px 16px 0; }
 .tab.active { display: block; }
 
@@ -103,12 +102,10 @@ body {
 .stat-card,
 .progress-block,
 .tx-item,
-.donut-wrap,
-.balance-big {
+.donut-wrap {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
 }
 
 /* STATS */
@@ -129,7 +126,7 @@ body {
 }
 
 .stat-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 2px;
@@ -147,19 +144,13 @@ body {
   font-family: var(--font-display);
   font-size: 20px;
   font-variant-numeric: tabular-nums;
-  margin-bottom: 4px;
-}
-
-.stat-sub {
-  font-size: 10px;
-  color: var(--muted);
 }
 
 /* SECTION */
 .section-title {
   font-size: 10px;
   color: var(--muted);
-  opacity: 0.75;
+  opacity: 0.7;
   letter-spacing: 1.5px;
   text-transform: uppercase;
   margin: 18px 0 10px;
@@ -213,23 +204,6 @@ body {
   justify-content: center;
 }
 
-.tx-desc {
-  font-size: 13px;
-  opacity: 0.95;
-}
-
-.tx-cat {
-  font-size: 10px;
-  color: var(--muted);
-}
-
-/* DONUT */
-.donut-wrap {
-  display: flex;
-  gap: 16px;
-  padding: 14px;
-}
-
 /* ALERT */
 .alert {
   background: rgba(255,107,107,0.1);
@@ -241,7 +215,7 @@ body {
   margin-bottom: 8px;
 }
 
-/* WISHLIST */
+/* WISH */
 .wish-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -266,14 +240,9 @@ body {
   padding: 10px;
 }
 
-.wish-title {
-  font-size: 12px;
-}
-
 .wish-price {
   font-family: var(--font-display);
   color: var(--accent3);
-  margin-top: 6px;
 }
 
 /* LOADING */
@@ -389,14 +358,43 @@ function showTab(id) {
   event.currentTarget.classList.add('active');
 }
 
-async function load() {
+function fmt(n){return Number(n).toLocaleString('uk-UA')+' ₴';}
+function emoji(cat){return '💸';}
+
+async function load(){
   const res = await fetch('data.json');
   const d = await res.json();
 
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
+  document.getElementById('loading').style.display='none';
+  document.getElementById('app').style.display='block';
 
-  // (твій JS лишився б тут без змін — я його не ламав)
+  const txs = d.transactions || [];
+
+  const income = txs.filter(t=>t['Тип']==='Дохід').reduce((a,t)=>a+Number(t['Сума']||0),0);
+  const expense = txs.filter(t=>t['Тип']==='Витрата').reduce((a,t)=>a+Number(t['Сума']||0),0);
+  const balance = income - expense;
+
+  document.getElementById('ov-income').textContent=fmt(income);
+  document.getElementById('ov-expense').textContent=fmt(expense);
+  document.getElementById('ov-balance').textContent=fmt(balance);
+
+  document.getElementById('ov-expected').textContent='—';
+  document.getElementById('ov-plan').textContent='—';
+
+  const txList=document.getElementById('tx-list');
+  txList.innerHTML=txs.map(t=>`
+    <div class="tx-item">
+      <div class="tx-icon">💸</div>
+      <div>
+        <div>${t['Опис']||''}</div>
+        <div style="font-size:10px;color:#93a0b3">${t['Категорія']||''}</div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('cat-list').innerHTML='(поки спрощено)';
+  document.getElementById('ov-expense-cats').innerHTML='';
+  document.getElementById('ov-donut-wrap').innerHTML='';
 }
 
 load();
