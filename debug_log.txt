@@ -1,8 +1,17 @@
 Початок синхронізації...
-Завантажую transactions...
-   ПОМИЛКА: Не вдалося завантажити transactions (Статус: 400)
-Завантажую budget...
-   ПОМИЛКА: Не вдалося завантажити budget (Статус: 400)
-Завантажую wishlist...
-   Успішно! Рядків: 24
-Готово! data.json оновлено.
+
+===== BUDGET =====
+URL: https://docs.google.com/spreadsheets/d/1D11kd5byyB17kJ88mUGvBdhkLOX8IKsPn6CcGKK0COU/export?format=xlsx
+HTTP статус: 200
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+❌ КРИТИЧНА ПОМИЛКА
+Missing optional dependency 'openpyxl'.  Use pip or conda to install openpyxl.
+
+===== WISHLIST =====
+URL: https://docs.google.com/spreadsheets/d/1Wgs2XgmamRKgoEd_R4Z2tbOa21h8t6UjlslB62hAtYs/export?format=xlsx
+HTTP статус: 200
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+❌ КРИТИЧНА ПОМИЛКА
+Missing optional dependency 'openpyxl'.  Use pip or conda to install openpyxl.
+
+===== ГОТОВО =====
