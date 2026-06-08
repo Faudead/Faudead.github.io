@@ -3,237 +3,261 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Мій Простір: Бюджет та Бажання</title>
+<title>Мій Простір: Бюджет</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body { font-family: Arial, sans-serif; background: #0f172a; color: white; margin: 0; padding: 16px; -webkit-tap-highlight-color: transparent; }
-h1 { margin-bottom: 16px; }
-
-#debug-log {
-  background: #1e1b4b;
-  border: 1px solid #818cf8;
-  border-radius: 10px;
-  padding: 12px;
-  margin-bottom: 16px;
-  font-family: monospace;
-  font-size: 12px;
-  color: #c7d2fe;
-  display: none;
+body {
+  font-family: Arial, sans-serif;
+  background:#0f172a;
+  color:white;
+  margin:0;
+  padding:16px;
 }
 
-.tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
-.tab-btn { background: #1e293b; color: #94a3b8; padding: 10px 20px; border-radius: 10px; border: 1px solid #334155; cursor: pointer; font-weight: bold; font-size: 14px; }
-.tab-btn.active { background: #2563eb; color: white; }
+h1 { margin:0 0 12px 0; }
 
-.tab-content { display: none; }
-.tab-content.active { display: block; }
+.tabs { display:flex; gap:10px; margin-bottom:16px; }
 
-.budget-header {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
+.tab-btn {
+  padding:10px 16px;
+  background:#1e293b;
+  border:none;
+  color:#94a3b8;
+  border-radius:10px;
 }
 
-.free-amount { font-size: 32px; font-weight: bold; color: #34d399; }
-
-.chart-card {
-  background: #1e293b;
-  border-radius: 14px;
-  border: 1px solid #334155;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.tab-btn.active {
+  background:#2563eb;
+  color:white;
 }
 
-.chart-wrapper { width: 100%; height: 220px; }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:12px;
+}
 
 .card {
-  background: #1e293b;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid #334155;
+  background:#1e293b;
+  border-radius:12px;
+  padding:12px;
 }
 
-.card img { width: 100%; height: 170px; object-fit: contain; background: #0b1220; padding: 10px; }
-
-.content { padding: 12px; }
-
-button {
-  margin-top: 8px;
-  padding: 10px;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  background: #2563eb;
-  color: white;
-  font-weight: bold;
+.chart-wrapper {
+  height:220px;
 }
 
-button.bought { background: #16a34a; }
+.small {
+  font-size:13px;
+  color:#94a3b8;
+}
+
+.big {
+  font-size:28px;
+  font-weight:bold;
+  color:#22c55e;
+}
 
 </style>
-</head>
 
+</head>
 <body>
 
 <div class="tabs">
-  <button class="tab-btn active" onclick="switchTab('budget-tab', this)">📊 Бюджет</button>
-  <button class="tab-btn" onclick="switchTab('wishlist-tab', this)">🎁 Wishlist</button>
+  <button class="tab-btn active" onclick="switchTab('budget',this)">📊 Бюджет</button>
+  <button class="tab-btn" onclick="switchTab('wish',this)">🎁 Wishlist</button>
 </div>
 
-<div id="budget-tab" class="tab-content active">
+<div id="budget" class="tab-content active">
 
-  <div class="budget-header">
-    <div>
-      <h1 style="margin:0;">Фінанси</h1>
-      <p id="income-summary">Завантаження...</p>
-    </div>
-    <div>
-      <div>💰 Вільно</div>
-      <div id="free-money" class="free-amount">0 ₴</div>
-    </div>
-  </div>
+  <h1>Фінанси</h1>
 
-  <div class="chart-card">
-    <h3>Бюджет використання</h3>
+  <div class="grid">
 
-    <!-- 🔥 НОВИЙ БЛОК -->
-    <div style="text-align:center; margin-bottom:10px; font-size:14px; color:#94a3b8;">
-      <div id="budget-used">—</div>
-      <div id="budget-remaining">—</div>
-      <div id="budget-total">—</div>
+    <div class="card">
+      <div class="small">💰 Вільні гроші</div>
+      <div id="freeMoney" class="big">0 ₴</div>
+      <div id="incomeInfo" class="small"></div>
     </div>
 
-    <div class="chart-wrapper">
-      <canvas id="progressChart"></canvas>
+    <div class="card">
+      <div class="small">1. Вільні гроші</div>
+      <div class="chart-wrapper">
+        <canvas id="freeChart"></canvas>
+      </div>
     </div>
+
+    <div class="card">
+      <div class="small">2. Куди пішло</div>
+      <div class="chart-wrapper">
+        <canvas id="factChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="small">3. Бюджет</div>
+
+      <div class="small" id="budgetText"></div>
+
+      <div class="chart-wrapper">
+        <canvas id="budgetChart"></canvas>
+      </div>
+    </div>
+
   </div>
 
 </div>
 
-<div id="wishlist-tab" class="tab-content">
+<div id="wish" class="tab-content">
   <h1>Wishlist</h1>
-  <div class="grid" id="grid"></div>
+  <div id="grid"></div>
 </div>
 
 <script>
 
-let wishlistData = [];
-let bought = JSON.parse(localStorage.getItem("bought") || "{}");
+let wishlist = [];
+let bought = JSON.parse(localStorage.getItem("bought")||"{}");
 
-function switchTab(id, btn){
-  document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  btn.classList.add('active');
+function switchTab(id,btn){
+  document.querySelectorAll(".tab-content").forEach(e=>e.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(e=>e.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  btn.classList.add("active");
 }
 
-function normalizeStr(str){
-  return (str||"").toLowerCase().trim();
-}
-
-fetch("data.json?t=" + Date.now())
+fetch("data.json?t="+Date.now())
 .then(r=>r.json())
 .then(data=>{
-
-  renderBudget(data.transactions || [], data.budget || []);
-
-  wishlistData = data.wishlist || [];
-  renderWishlist(wishlistData);
-
+  render(data.transactions||[], data.budget||[]);
+  wishlist = data.wishlist||[];
+  renderWishlist(wishlist);
 });
 
-function renderBudget(transactions, budget){
+function render(transactions,budget){
 
-  let income = 0;
-  let expense = 0;
+  let income=0;
+  let expense=0;
+
+  let cats={
+    "оренда":0,
+    "комуналка":0,
+    "їжа":0,
+    "транспорт":0,
+    "зв'язок":0,
+    "інше":0
+  };
 
   transactions.forEach(t=>{
-    let type = t["Тип"] || "";
-    let sum = parseFloat(t["Сума"] || 0);
+    let type=t["Тип"];
+    let sum=parseFloat(t["Сума"]||0);
+    let cat=(t["Категорія"]||"").toLowerCase();
 
-    if(type==="Дохід") income += sum;
-    if(type==="Витрата") expense += sum;
+    if(type==="Дохід") income+=sum;
+
+    if(type==="Витрата"){
+      expense+=sum;
+
+      if(cat.includes("орен")) cats["оренда"]+=sum;
+      else if(cat.includes("комун")) cats["комуналка"]+=sum;
+      else if(cat.includes("їж")) cats["їжа"]+=sum;
+      else if(cat.includes("транс")) cats["транспорт"]+=sum;
+      else if(cat.includes("зв")) cats["зв'язок"]+=sum;
+      else cats["інше"]+=sum;
+    }
   });
 
-  let planTotal = 0;
-
+  let plan=0;
   budget.forEach(b=>{
-    let keys = Object.keys(b);
-    let val = parseFloat(b[keys[1]] || 0);
-    if(!isNaN(val)) planTotal += val;
+    let v=parseFloat(b[Object.keys(b)[1]]||0);
+    if(!isNaN(v)) plan+=v;
   });
 
-  let remaining = Math.max(0, planTotal - expense);
+  let free = income-expense;
+  let remaining = Math.max(0,plan-expense);
 
-  document.getElementById("income-summary").innerText =
-    `Дохід: ${income.toLocaleString()} ₴ | Витрати: ${expense.toLocaleString()} ₴`;
+  document.getElementById("freeMoney").innerText=free.toLocaleString()+" ₴";
+  document.getElementById("incomeInfo").innerText=
+    `Дохід: ${income} | Витрати: ${expense}`;
 
-  document.getElementById("free-money").innerText =
-    (income - expense).toLocaleString() + " ₴";
+  document.getElementById("budgetText").innerText=
+    `Витрачено ${expense} ₴ / ${plan} ₴ (залишилось ${remaining} ₴)`;
 
-  // 🔥 нові підписи
-  document.getElementById("budget-used").innerText =
-    `Витрачено: ${expense.toLocaleString()} ₴`;
+  // ===== COLORS =====
+  const green="#22c55e";
+  const red="#ef4444";
+  const gray="#334155";
 
-  document.getElementById("budget-remaining").innerText =
-    `Залишилось: ${remaining.toLocaleString()} ₴`;
+  const blue="#3b82f6";
+  const yellow="#eab308";
+  const purple="#a855f7";
 
-  document.getElementById("budget-total").innerText =
-    `Всього план: ${planTotal.toLocaleString()} ₴`;
-
-  new Chart(document.getElementById("progressChart"),{
+  // ===== FREE =====
+  new Chart(document.getElementById("freeChart"),{
     type:"doughnut",
     data:{
-      labels:["Витрачено","Залишилось"],
+      labels:["Дохід","Витрати","Залишок"],
       datasets:[{
-        data:[expense, remaining],
-        backgroundColor:["#ef4444","#334155"]
+        data:[income,expense,free],
+        backgroundColor:[green,red,"#16a34a"]
       }]
-    },
-    options:{
-      plugins:{legend:{labels:{color:"white"}}}
+    }
+  });
+
+  // ===== FACT =====
+  new Chart(document.getElementById("factChart"),{
+    type:"doughnut",
+    data:{
+      labels:Object.keys(cats),
+      datasets:[{
+        data:Object.values(cats),
+        backgroundColor:[blue,gray,green,yellow,purple,"#64748b"]
+      }]
+    }
+  });
+
+  // ===== BUDGET =====
+  new Chart(document.getElementById("budgetChart"),{
+    type:"doughnut",
+    data:{
+      labels:["Витрачено","Залишок"],
+      datasets:[{
+        data:[expense,remaining],
+        backgroundColor:[red,gray]
+      }]
     }
   });
 
 }
 
 function renderWishlist(items){
-  let grid = document.getElementById("grid");
-  grid.innerHTML = "";
+  let g=document.getElementById("grid");
+  g.innerHTML="";
 
   items.forEach(i=>{
-    let title = i.title || i.Назва || "";
-    let price = i.price || i.Ціна || "";
+    let t=i.title||i.Назва||"";
+    let p=i.price||i.Ціна||"";
 
-    grid.innerHTML += `
+    g.innerHTML+=`
       <div class="card">
-        <div class="content">
-          <div>${title}</div>
-          <div>${price} ₴</div>
-          <button onclick="toggle('${title}')">
-            ${bought[title] ? "✔ Куплено" : "Купити"}
-          </button>
-        </div>
+        <div>${t}</div>
+        <div>${p} ₴</div>
+        <button onclick="toggle('${t}')">
+          ${bought[t]?"✔ Куплено":"Купити"}
+        </button>
       </div>
     `;
   });
 }
 
-function toggle(title){
-  bought[title] = !bought[title];
-  localStorage.setItem("bought", JSON.stringify(bought));
-  renderWishlist(wishlistData);
+function toggle(t){
+  bought[t]=!bought[t];
+  localStorage.setItem("bought",JSON.stringify(bought));
+  renderWishlist(wishlist);
 }
 
 </script>
