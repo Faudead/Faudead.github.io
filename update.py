@@ -2,47 +2,79 @@ import json
 import os
 import pandas as pd
 import requests
+from io import BytesIO
 
-BUDGET_SHEET_URL = "https://docs.google.com/spreadsheets/d/1D11kd5byyB17kJ88mUGvBdhkLOX8IKsPn6CcGKK0COU/edit?usp=drivesdk"
-WISHLIST_SHEET_URL = "https://docs.google.com/spreadsheets/d/1Wgs2XgmamRKgoEd_R4Z2tbOa21h8t6UjlslB62hAtYs/edit?usp=drivesdk"
+BUDGET_ID = "1D11kd5byyB17kJ88mUGvBdhkLOX8IKsPn6CcGKK0COU"
+WISHLIST_ID = "1Wgs2XgmamRKgoEd_R4Z2tbOa21h8t6UjlslB62hAtYs"
 
 base_path = os.getcwd()
 log_path = os.path.join(base_path, "debug_log.txt")
 json_path = os.path.join(base_path, "data.json")
+
 
 def write_log(msg):
     print(msg)
     with open(log_path, "a", encoding="utf-8") as f:
         f.write(msg + "\n")
 
+
+def load_google_sheet_xlsx(sheet_id, name):
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
+
+    write_log(f"\n===== {name} =====")
+    write_log(f"URL: {url}")
+
+    try:
+        res = requests.get(url, timeout=20)
+
+        write_log(f"HTTP статус: {res.status_code}")
+        write_log(f"Content-Type: {res.headers.get('Content-Type')}")
+
+        if res.status_code != 200:
+            write_log("❌ Помилка завантаження")
+            write_log(res.text[:300])
+            return {}
+
+        xls = pd.ExcelFile(BytesIO(res.content))
+
+        write_log(f"📄 Вкладки: {xls.sheet_names}")
+
+        sheets_data = {}
+
+        for sheet in xls.sheet_names:
+            df = pd.read_excel(xls, sheet_name=sheet)
+            sheets_data[sheet] = df.fillna("").to_dict(orient="records")
+            write_log(f"   ✅ {sheet}: {len(sheets_data[sheet])} рядків")
+
+        return sheets_data
+
+    except Exception as e:
+        write_log("❌ КРИТИЧНА ПОМИЛКА")
+        write_log(str(e))
+        return {}
+
+
+# init log
 with open(log_path, "w", encoding="utf-8") as f:
     f.write("Початок синхронізації...\n")
 
-try:
-    data = {"transactions": [], "budget": [], "wishlist": []}
-    budget_id = "1D11kd5byyB17kJ88mUGvBdhkLOX8IKsPn6CcGKK0COU"
-    wishlist_id = "1Wgs2XgmamRKgoEd_R4Z2tbOa21h8t6UjlslB62hAtYs"
+data = {
+    "budget": {},
+    "wishlist": {}
+}
 
-    # Словник: вкладка -> (URL, тип даних)
-    sources = {
-        "transactions": f"https://docs.google.com/spreadsheets/d/{budget_id}/export?format=csv&gid=33010173",
-        "budget": f"https://docs.google.com/spreadsheets/d/{budget_id}/export?format=csv&gid=1626297495",
-        "wishlist": f"https://docs.google.com/spreadsheets/d/{wishlist_id}/export?format=csv&gid=0"
-    }
+# --- BUDGET SHEET ---
+budget_sheets = load_google_sheet_xlsx(BUDGET_ID, "BUDGET")
 
-    for key, url in sources.items():
-        write_log(f"Завантажую {key}...")
-        res = requests.get(url, timeout=20)
-        if res.status_code == 200 and "html" not in res.text.lower()[:50]:
-            df = pd.read_csv(pd.io.common.StringIO(res.text))
-            data[key] = df.fillna("").to_dict(orient="records")
-            write_log(f"   Успішно! Рядків: {len(data[key])}")
-        else:
-            write_log(f"   ПОМИЛКА: Не вдалося завантажити {key} (Статус: {res.status_code})")
+data["budget"] = budget_sheets.get("Бюджет", [])
+data["transactions"] = budget_sheets.get("Транзакції", [])
 
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    write_log("Готово! data.json оновлено.")
+# --- WISHLIST SHEET ---
+wishlist_sheets = load_google_sheet_xlsx(WISHLIST_ID, "WISHLIST")
+data["wishlist"] = wishlist_sheets.get("Sheet1", [])  # або "Лист1" якщо перейменований
 
-except Exception as e:
-    write_log(f"КРИТИЧНА ПОМИЛКА: {str(e)}")
+# save json
+with open(json_path, "w", encoding="utf-8") as f:
+    json.dump(data, f, ensure_ascii=False, indent=2)
+
+write_log("\n===== ГОТОВО =====")
