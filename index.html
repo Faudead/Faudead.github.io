@@ -17,11 +17,8 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-h1 {
-  margin-bottom: 16px;
-}
+h1 { margin-bottom: 16px; }
 
-/* Блок сповіщень */
 #debug-log {
   background: #1e1b4b;
   border: 1px solid #818cf8;
@@ -34,7 +31,6 @@ h1 {
   display: none;
 }
 
-/* Навігація вкладок */
 .tabs {
   display: flex;
   gap: 8px;
@@ -61,15 +57,9 @@ h1 {
   border-color: #2563eb;
 }
 
-.tab-content {
-  display: none;
-}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
 
-.tab-content.active {
-  display: block;
-}
-
-/* Контейнери Бюджету */
 .budget-header {
   background: #1e293b;
   border: 1px solid #334155;
@@ -83,10 +73,7 @@ h1 {
   gap: 16px;
 }
 
-.free-money-box {
-  text-align: right;
-}
-
+.free-money-box { text-align: right; }
 .free-title {
   font-size: 11px;
   color: #34d399;
@@ -94,12 +81,7 @@ h1 {
   letter-spacing: 1px;
   font-weight: bold;
 }
-
-.free-amount {
-  font-size: 32px;
-  font-weight: black;
-  color: #34d399;
-}
+.free-amount { font-size: 32px; font-weight: bold; color: #34d399; }
 
 .budget-grid {
   display: grid;
@@ -118,41 +100,18 @@ h1 {
   align-items: center;
 }
 
-.chart-card h3 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
-  text-align: center;
-}
+.chart-card h3 { margin: 0 0 4px 0; font-size: 16px; text-align: center; }
+.chart-card p { margin: 0 0 16px 0; font-size: 12px; color: #94a3b8; text-align: center; }
+.chart-wrapper { position: relative; width: 100%; height: 220px; }
 
-.chart-card p {
-  margin: 0 0 16px 0;
-  font-size: 12px;
-  color: #94a3b8;
-  text-align: center;
-}
-
-.chart-wrapper {
-  position: relative;
-  width: 100%;
-  height: 220px;
-}
-
-/* Список Бажань */
-.controls {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-}
-
+.controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
 input, select {
   padding: 10px;
   border-radius: 10px;
-  border: none;
-  outline: none;
   background: #1e293b;
   color: white;
   border: 1px solid #334155;
+  outline: none;
 }
 
 .grid {
@@ -168,12 +127,7 @@ input, select {
   border: 1px solid #334155;
   transition: 0.2s;
 }
-
-.card:hover {
-  transform: translateY(-3px);
-  border-color: #3b82f6;
-}
-
+.card:hover { transform: translateY(-3px); border-color: #3b82f6; }
 .card img {
   width: 100%;
   height: 170px;
@@ -183,41 +137,12 @@ input, select {
   box-sizing: border-box;
 }
 
-.content {
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.label {
-  font-size: 10px;
-  opacity: 0.6;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.category {
-  font-size: 13px;
-  opacity: 0.8;
-}
-
-.title {
-  font-size: 16px;
-  font-weight: bold;
-}
-
-.price {
-  font-size: 16px;
-  font-weight: bold;
-  color: #34d399;
-}
-
-a {
-  color: #60a5fa;
-  text-decoration: none;
-  font-size: 14px;
-}
+.content { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.label { font-size: 10px; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; }
+.category { font-size: 13px; opacity: 0.8; }
+.title { font-size: 16px; font-weight: bold; }
+.price { font-size: 16px; font-weight: bold; color: #34d399; }
+a { color: #60a5fa; text-decoration: none; font-size: 14px; }
 
 button {
   margin-top: 8px;
@@ -229,10 +154,7 @@ button {
   color: white;
   font-weight: bold;
 }
-
-button.bought {
-  background: #16a34a;
-}
+button.bought { background: #16a34a; }
 </style>
 </head>
 <body>
@@ -248,7 +170,7 @@ button.bought {
   <div class="budget-header">
     <div>
       <h1 style="margin:0;">Фінансовий моніторинг</h1>
-      <p id="income-summary" style="margin:4px 0 0 0; color:#94a3b8; font-size:14px;">Очікування локальних даних...</p>
+      <p id="income-summary" style="margin:4px 0 0 0; color:#94a3b8; font-size:14px;">Очікування завантаження з Google...</p>
     </div>
     <div class="free-money-box">
       <div class="free-title">💰 Вільно зараз</div>
@@ -292,13 +214,19 @@ button.bought {
 </div>
 
 <script>
-// Читаємо єдиний файл, згенерований Пайтоном
-const DATA_FILE = "data.json";
+// Прямі ID твоїх таблиць, які я взяв з твого update.py
+const BUDGET_ID = "1W0Lm4Rf9UGrzNPf4JD9Io_XfroqOnrAf";
+const WISHLIST_ID = "1Wgs2XgmamRKgoEd_R4Z2tbOa21h8t6UjlslB62hAtYs";
+
+// Прямі посилання на CSV-експорт конкретних вкладок без посередників
+const URL_TX = `https://docs.google.com/spreadsheets/d/${BUDGET_ID}/export?format=csv&gid=33010173`;
+const URL_BG = `https://docs.google.com/spreadsheets/d/${BUDGET_ID}/export?format=csv&gid=1626297495`;
+const URL_WL = `https://docs.google.com/spreadsheets/d/${WISHLIST_ID}/export?format=csv&gid=0`;
 
 let wishlistData = [];
 let bought = JSON.parse(localStorage.getItem("bought") || "{}");
 
-function showInfoMessage(msg) {
+function showMessage(msg) {
   const logBox = document.getElementById('debug-log');
   logBox.style.display = 'block';
   logBox.innerHTML += msg + '<br>';
@@ -311,58 +239,87 @@ function switchTab(tabId, btn) {
   btn.classList.add('active');
 }
 
-// Завантаження локального JSON
-fetch(DATA_FILE)
-  .then(r => {
-    if (!r.ok) throw new Error("Файл data.json не знайдено або не створено скриптом.");
-    return r.json();
-  })
-  .then(data => {
-    const transactions = data.transactions || [];
-    const budget = data.budget || [];
-    const wishlist = data.wishlist || [];
-
-    // Відображаємо фінанси
-    renderBudgetDashboard(transactions, budget);
-
-    // Перевіряємо чи є у вішлісті валідні поля (Назва/title)
-    if (wishlist.length > 0 && (wishlist[0].title || wishlist[0].Назва || wishlist[0].category || wishlist[0].Категорія)) {
-      wishlistData = wishlist;
-      setupWishlistFilters(wishlistData);
-      renderWishlist(wishlistData);
-    } else {
-      renderWishlist([]);
-    }
-  })
-  .catch(err => {
-    document.getElementById('income-summary').innerText = "Помилка завантаження. Спершу запусти Пайтон скрипт update_data.py";
-    showInfoMessage(`❌ Не вдалося зчитати дані: ${err.message}`);
+// Функція розумного парсингу CSV рядків у масив об'єктів
+function parseCSV(text) {
+  const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+  if (lines.length === 0) return [];
+  
+  // Парсимо заголовки з урахуванням лапок
+  const headers = lines[0].split(',').map(h => h.replace(/["']/g, "").trim());
+  
+  return lines.slice(1).map(line => {
+    // Регулярка для коректного розбиття CSV, навіть якщо всередині клітинок є коми
+    const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(',');
+    const obj = {};
+    headers.forEach((h, i) => {
+      let val = matches[i] ? matches[i].trim() : "";
+      obj[h] = val.replace(/^["']|["']$/g, "").trim();
+    });
+    return obj;
   });
+}
+
+async function loadData() {
+  try {
+    // Стягуємо все наживо паралельно
+    const [resTx, resBg, resWl] = await Promise.all([
+      fetch(URL_TX).then(r => { if(!r.ok) throw new Error("Транзакції недоступні"); return r.text(); }),
+      fetch(URL_BG).then(r => { if(!r.ok) throw new Error("Бюджет недоступний"); return r.text(); }),
+      fetch(URL_WL).then(r => r.text()).catch(() => "")
+    ]);
+
+    const data = {
+      transactions: parseCSV(resTx),
+      budget: parseCSV(resBg),
+      wishlist: resWl ? parseCSV(resWl) : []
+    };
+
+    // Записуємо успішну копію у локальну пам'ять пристрою
+    localStorage.setItem("cached_financial_data", JSON.stringify(data));
+    renderAll(data);
+  } catch (err) {
+    // Офлайн режим: якщо гугл лежить, беремо з КЕШУ пристрою
+    const cached = localStorage.getItem("cached_financial_data");
+    if (cached) {
+      showMessage("ℹ️ Завантажено збережені дані з локального кешу смартфона.");
+      renderAll(JSON.parse(cached));
+    } else {
+      document.getElementById('income-summary').innerText = "Помилка доступу до Google Таблиць.";
+      showMessage(`❌ Не вдалося отримати дані: Перевір чи увімкнено доступ 'Усі, хто мають посилання' в обох таблицях.`);
+    }
+  }
+}
+
+function renderAll(data) {
+  renderBudgetDashboard(data.transactions, data.budget);
+  
+  const wl = data.wishlist;
+  if (wl && wl.length > 0 && (wl[0].title || wl[0].Назва || wl[0].category || wl[0].Категорія)) {
+    wishlistData = wl;
+    setupWishlistFilters(wishlistData);
+    renderWishlist(wishlistData);
+  } else {
+    renderWishlist([]);
+  }
+}
 
 function renderBudgetDashboard(transactions, budget) {
-  let factIncome = 0;
-  let factExpense = 0;
+  let factIncome = 0, factExpense = 0;
   let expensesByCategory = {};
 
-  // Математичний розрахунок транзакцій
   transactions.forEach(tx => {
     const type = tx["Тип"] || tx["тип"];
     const category = tx["Категорія"] || tx["категорія"];
     const sum = parseFloat(tx["Сума"] || tx["сума"]) || 0;
-
-    if (type === "Дохід") {
-      factIncome += sum;
-    } else if (type === "Витрата") {
+    if (type === "Дохід") factIncome += sum;
+    else if (type === "Витрата") {
       factExpense += sum;
-      if (category) {
-        expensesByCategory[category] = (expensesByCategory[category] || 0) + sum;
-      }
+      if (category) expensesByCategory[category] = (expensesByCategory[category] || 0) + sum;
     }
   });
 
-  let planIncomeTotal = 0;
+  let planIncomeTotal = 0, planExpensesTotal = 0;
   let planExpensesByCategory = {};
-  let planExpensesTotal = 0;
   let isExpenseSection = false;
 
   budget.forEach(row => {
@@ -371,19 +328,15 @@ function renderBudgetDashboard(transactions, budget) {
 
     const firstCell = values[0];
     if (firstCell.includes("Планові доходы") || firstCell.includes("Планові доходи") || firstCell.includes("Скіко очікується")) return;
-    if (firstCell.includes("Планові витрати")) {
-      isExpenseSection = true;
-      return;
-    }
+    if (firstCell.includes("Планові витрати")) { isExpenseSection = true; return; }
     if (firstCell === "Стаття" || firstCell === "Категорія") return;
 
     const name = firstCell;
     const planSum = parseFloat(values[1]) || 0;
 
     if (name && planSum > 0) {
-      if (!isExpenseSection) {
-        planIncomeTotal += planSum;
-      } else {
+      if (!isExpenseSection) planIncomeTotal += planSum;
+      else {
         planExpensesByCategory[name] = planSum;
         planExpensesTotal += planSum;
       }
@@ -391,7 +344,6 @@ function renderBudgetDashboard(transactions, budget) {
   });
 
   const freeMoney = factIncome - factExpense;
-
   document.getElementById('income-summary').innerText = `Очікуваний дохід (План): ${planIncomeTotal.toLocaleString('uk-UA')} ₴ | Отримано фактично: ${factIncome.toLocaleString('uk-UA')} ₴`;
   document.getElementById('free-money').innerText = freeMoney.toLocaleString('uk-UA') + ' ₴';
   
@@ -400,37 +352,26 @@ function renderBudgetDashboard(transactions, budget) {
 
   const chartColors = ['#6366f1', '#3b82f6', '#10b981', '#eab308', '#f43f5e', '#a855f7', '#f97316', '#06b6d4', '#ec4899', '#14b8a6'];
 
-  // Дашборди
   new Chart(document.getElementById('planChart'), {
     type: 'doughnut',
-    data: {
-      labels: Object.keys(planExpensesByCategory),
-      datasets: [{ data: Object.values(planExpensesByCategory), backgroundColor: chartColors, borderWidth: 0 }]
-    },
+    data: { labels: Object.keys(planExpensesByCategory), datasets: [{ data: Object.values(planExpensesByCategory), backgroundColor: chartColors, borderWidth: 0 }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
   });
 
   new Chart(document.getElementById('factChart'), {
     type: 'doughnut',
-    data: {
-      labels: Object.keys(expensesByCategory),
-      datasets: [{ data: Object.values(expensesByCategory), backgroundColor: chartColors, borderWidth: 0 }]
-    },
+    data: { labels: Object.keys(expensesByCategory), datasets: [{ data: Object.values(expensesByCategory), backgroundColor: chartColors, borderWidth: 0 }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
   });
 
   const remainingPlan = Math.max(0, planExpensesTotal - factExpense);
   new Chart(document.getElementById('progressChart'), {
     type: 'doughnut',
-    data: {
-      labels: ['Вже витрачено', 'Вільний ліміт бюджету'],
-      datasets: [{ data: [factExpense, remainingPlan], backgroundColor: ['#f43f5e', '#334155'], borderWidth: 0 }]
-    },
+    data: { labels: ['Вже витрачено', 'Вільний ліміт'], datasets: [{ data: [factExpense, remainingPlan], backgroundColor: ['#f43f5e', '#334155'], borderWidth: 0 }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } } }
   });
 }
 
-// --- Логіка Вішліста ---
 function setupWishlistFilters(data) {
   if (!data || data.length === 0) return;
   const categories = [...new Set(data.map(i => i.category || i.Категорія).filter(Boolean))];
@@ -464,7 +405,7 @@ function renderWishlist(items) {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
   if (!items || items.length === 0) {
-    grid.innerHTML = "<p style='color:#94a3b8; font-size:14px; padding:10px;'>Список бажань пустий або не активований у Пайтоні.</p>";
+    grid.innerHTML = "<p style='color:#94a3b8; font-size:14px; padding:10px;'>Список бажань порожній або вкладку не знайдено.</p>";
     return;
   }
   items.forEach(item => {
@@ -479,22 +420,18 @@ function renderWishlist(items) {
       <div class="card">
         <img src="${image}" onerror="this.style.display='none'">
         <div class="content">
-          <div class="label">Категорія</div>
-          <div class="category">${category}</div>
-          <div class="label">Назва</div>
-          <div class="title">${title}</div>
-          <div class="label">Ціна</div>
-          <div class="price">${price ? price + ' ₴' : '-'}</div>
-          <div class="label">Посилання</div>
-          <a href="${url}" target="_blank">відкрити товар</a>
-          <button class="${isBought ? 'bought' : ''}" onclick="toggleBought('${title}')">
-            ${isBought ? '✔ Куплено' : 'Позначити як куплено'}
-          </button>
+          <div class="label">Категорія</div><div class="category">${category}</div>
+          <div class="label">Назва</div><div class="title">${title}</div>
+          <div class="label">Ціна</div><div class="price">${price ? price + ' ₴' : '-'}</div>
+          <div class="label">Посилання</div><a href="${url}" target="_blank">відкрити товар</a>
+          <button class="${isBought ? 'bought' : ''}" onclick="toggleBought('${title}')">${isBought ? '✔ Куплено' : 'Позначити як куплено'}</button>
         </div>
-      </div>
-    `;
+      </div>`;
   });
 }
+
+// Старт
+loadData();
 </script>
 </body>
 </html>
