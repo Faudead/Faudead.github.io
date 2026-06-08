@@ -1,29 +1,35 @@
-name: update-wishlist
+name: Update Financial Data
 
 on:
   schedule:
-    - cron: '0 * * * *'
-  workflow_dispatch:
+    - cron: '0 */3 * * *' # Автоматичний запуск кожні 3 години
+  workflow_dispatch: # Додає кнопку для ручного запуску в інтерфейсі GitHub
+
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Перевірка репозиторію
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Встановлення Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.10'
 
-      - run: pip install pandas
+      - name: Встановлення бібліотек
+        run: pip install pandas requests
 
-      - run: python update.py
+      - name: Запуск скрипта оновлення
+        run: python update.py # Запускаємо саме твій файл!
 
-      - run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-
+      - name: Збереження змін на GitHub
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add data.json
-          git commit -m "update" || echo "no changes"
+          git commit -m "Автоматичне оновлення даних таблиць" || exit 0
           git push
