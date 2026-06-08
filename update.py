@@ -4,7 +4,8 @@ import sys
 import pandas as pd
 import requests
 
-BUDGET_SHEET_URL = "https://docs.google.com/spreadsheets/d/1W0Lm4Rf9UGrzNPf4JD9Io_XfroqOnrAf/edit?usp=drivesdk"
+# ТВОЄ НОВЕ ПОСИЛАННЯ НА СВІЖУ GOOGLE ТАБЛИЦЮ
+BUDGET_SHEET_URL = "https://docs.google.com/spreadsheets/d/1D11kd5byyB17kJ88mUGvBdhkLOX8IKsPn6CcGKK0COU/edit?usp=drivesdk"
 WISHLIST_SHEET_URL = "https://docs.google.com/spreadsheets/d/1Wgs2XgmamRKgoEd_R4Z2tbOa21h8t6UjlslB62hAtYs/edit?usp=drivesdk"
 
 def extract_id(url):
@@ -17,7 +18,7 @@ with open(log_file, "w", encoding="utf-8") as log:
     log.write("=== ПОЧАТОК ЛОГУВАННЯ СИНХРОНІЗАЦІЇ ===\n")
 
 def write_log(message):
-    print(message)  # Залишаємо в консолі для зручності
+    print(message)
     with open(log_file, "a", encoding="utf-8") as log:
         log.write(message + "\n")
 
@@ -30,9 +31,10 @@ try:
     if not budget_id or not wishlist_id:
         raise ValueError("Не вдалося розпізнати ID таблиць.")
 
-    url_budget = f"https://docs.google.com/spreadsheets/d/{budget_id}/export?format=csv&gid=0"
-    url_transactions = f"https://docs.google.com/spreadsheets/d/{budget_id}/export?format=csv&gid=1"
-    url_wishlist = f"https://docs.google.com/spreadsheets/d/{wishlist_id}/export?format=csv&gid=0"
+    # Прописуємо точні gid вкладок, які ми витягнули з твоєї червневої структури таблиці
+    url_transactions = f"https://docs.google.com/spreadsheets/d/{budget_id}/export?format=csv&gid=33010173"  # Транзакції
+    url_budget = f"https://docs.google.com/spreadsheets/d/{budget_id}/export?format=csv&gid=1626297495"      # Бюджет
+    url_wishlist = f"https://docs.google.com/spreadsheets/d/{wishlist_id}/export?format=csv&gid=0"          # Вішліст
 
     # 1. Логування Бюджету
     write_log("\n⏳ [БЮДЖЕТ] Надсилання запиту до Google...")
@@ -53,12 +55,12 @@ try:
     except Exception as bg_err:
         write_log(f"❌ Помилка обробки Бюджету: {bg_err}")
 
-    # 2. Логування Транзакцій
+    # 2. Логування Тразнакцій
     write_log("\n⏳ [ТРАНЗАКЦІЇ] Надсилання запиту до Google...")
     try:
         res_tx = requests.get(url_transactions, timeout=10)
         write_log(f"   Статус відповіді: {res_tx.status_code}")
-        write_log(f"   Довжина отриманого тексту: {len(res_tx.text)} символів")
+        write_log(f"   Довжина отриманого тексту: {len(res_tx.text)} symbols")
         
         if "html" in res_tx.text.lower() and "google" in res_tx.text.lower():
             write_log("   ⚠️ УВАГА: Google повернув HTML-сторінку (можливо авторизація або помилка доступу) замість таблиці!")
@@ -70,7 +72,7 @@ try:
         write_log(f"   Успішно зчитано рядків: {len(df_tx)}")
         combined_data["transactions"] = df_tx.fillna("").to_dict(orient="records")
     except Exception as tx_err:
-        write_log(f"❌ Помилка обробки Тразнакцій: {tx_err}")
+        write_log(f"❌ Помилка обробки Транзакцій: {tx_err}")
 
     # 3. Логування Вішліста
     write_log("\n⏳ [ВІШЛІСТ] Запит до Google...")
@@ -85,7 +87,7 @@ try:
     # Записуємо основні дані
     with open("data.json", "w", encoding="utf-8") as f:
         json.dump(combined_data, f, ensure_ascii=False, indent=2)
-    write_log("\n✅ Логування завершено успішно. Файл data.json оновлено.")
+    write_log("\n✅ Логування завершено успішно. Файл data.json оновлено новими даними.")
 
 except Exception as main_e:
     write_log(f"\n❌ Критична помилка скрипта: {main_e}")
