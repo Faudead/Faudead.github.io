@@ -112,10 +112,15 @@ function switchTab(tabId, btn) {
   btn.classList.add('active');
 }
 
-// Завантаження згенерованого файлу
+// Функція нормалізації апострофів для точного зведення категорій
+function normalizeStr(str) {
+  if (!str) return "";
+  return String(str).trim().toLowerCase().replace(/[\u2019\u2018\u201b\u02bc`']/g, "'");
+}
+
 fetch("data.json?t=" + new Date().getTime())
   .then(r => {
-    if (!r.ok) throw new Error("Файл data.json ще не створено роботом GitHub.");
+    if (!r.ok) throw new Error("Файл data.json не знайдено.");
     return r.json();
   })
   .then(data => {
@@ -130,51 +135,116 @@ fetch("data.json?t=" + new Date().getTime())
     }
   })
   .catch(err => {
-    document.getElementById('income-summary').innerText = "Очікування першого запуску автоматизації...";
-    showInfoMessage(`❌ Статус: ${err.message}. Запусти Workflow вручну у вкладці Actions на GitHub.`);
+    document.getElementById('income-summary').innerText = "Помилка відображення даних.";
+    showInfoMessage(`❌ Статус: ${err.message}`);
   });
 
 function renderBudgetDashboard(transactions, budget) {
   let factIncome = 0, factExpense = 0, expensesByCategory = {};
+
+  // 1. Рахуємо реальні транзакції
   transactions.forEach(tx => {
     const type = tx["Тип"] || tx["тип"];
-    const category = tx["Категорія"] || tx["категорія"];
+    const rawCategory = tx["Категорія"] || tx["категорія"];
     const sum = parseFloat(tx["Сума"] || tx["сума"]) || 0;
-    if (type === "Дохід") factIncome += sum;
-    else if (type === "Витрата") {
+
+    if (type === "Дохід") {
+      factIncome += sum;
+    } else if (type === "Витрата") {
       factExpense += sum;
-      if (category) expensesByCategory[category] = (expensesByCategory[category] || 0) + sum;
+      if (rawCategory) {
+        const catKey = normalizeStr(rawCategory);
+        expensesByCategory[catKey] = (expensesByCategory[catKey] || 0) + sum;
+      }
     }
   });
 
-  let planIncomeTotal = 0, planExpensesTotal = 0, planExpensesByCategory = {};
+  // 2. Розбираємо структуру бюджету на базі твого файлу
+  let planExpensesByCategory = {};
+  let planExpensesTotal = 0;
   let isExpenseSection = false;
-  budget.forEach(row => {
-    const values = Object.values(row).map(v => String(v).trim());
-    if (values.length === 0 || !values[0]) return;
-    const firstCell = values[0];
-    if (firstCell.includes("Планові доходы") || firstCell.includes("Планові доходи") || firstCell.includes("Скіко очікується")) return;
-    if (firstCell.includes("Планові витрати")) { isExpenseSection = true; return; }
-    if (firstCell === "Стаття" || firstCell === "Категорія") return;
 
-    const name = firstCell;
-    const planSum = parseFloat(values[1]) || 0;
-    if (name && planSum > 0) {
-      if (!isExpenseSection) planIncomeTotal += planSum;
-      else { planExpensesByCategory[name] = planSum; planExpensesTotal += planSum; }
+  budget.forEach(row => {
+    const keys = Object.keys(row);
+    if (keys.length === 0) return;
+
+    // Беремо значення перших двох колонок рядка
+    const firstCell = String(row[keys[0]] || "").trim();
+    const secondCell = String(row[keys[1]] || "").trim();
+
+    if (!firstCell) return;
+
+    // Якщо добігли до роздільника витрат
+    if (firstCell.includes("Планові витрати")) {
+      isExpenseSection = true;
+      return;
     }
+    // Пропускаємо технічні заголовки таблиць
+    if (firstCell === "Стаття" || firstCell === "Категорія" || firstCell.includes("Планові доходи") || firstCell.includes("Скіко очікується")) {
+      return;
+    }
+
+    const planSum = parseFloat(secondCell) || 0;
+
+    // Зберігаємо планові категорії, якщо ми у правильному розділі
+    if (isExpenseSection && planSum >= 0) {
+      const catKey = normalizeStr(firstCell);
+      planExpensesByCategory[catKey] = planSum;
+      planExpensesTotal += planSum;
+    }
+  });
+
+  // Мапимо красиві (оригінальні) назви для графіків, щоб усунути розбіжності апострофів
+  const displayPlanNames = {
+    "оренда": "Оренда", "комуналка": "Комуналка", "їжа": "Їжа", 
+    "транспорт": "Транспорт", "зв'язок": "Зв'язок", "побут": "Побут", 
+    "хотілки": "Хотілки", "медицина": "Медицина", "відкладення": "Відкладення", 
+    "англа": "Англійська", "кредит": "Кредит"
+  };
+
+  let cleanPlanChartData = {};
+  let cleanFactChartData = {};
+
+  // Зводимо план під гарні назви
+  Object.keys(planExpensesByCategory).forEach(k => {
+    const label = displayPlanNames[k] || k;
+    cleanPlanChartData[label] = planExpensesByCategory[k];
+  });
+
+  // Зводимо факт під гарні назви (все що не в списку плану кидаємо в "Інше")
+  Object.keys(expensesByCategory).forEach(k => {
+    const label = displayPlanNames[k] || "Інше";
+    cleanFactChartData[label] = (cleanFactChartData[label] || 0) + expensesByCategory[k];
   });
 
   const freeMoney = factIncome - factExpense;
-  document.getElementById('income-summary').innerText = `Очікуваний дохід (План): ${planIncomeTotal.toLocaleString('uk-UA')} ₴ | Отримано фактично: ${factIncome.toLocaleString('uk-UA')} ₴`;
+  document.getElementById('income-summary').innerText = `Фактично отримано доходу: ${factIncome.toLocaleString('uk-UA')} ₴ | Всього витрачено: ${factExpense.toLocaleString('uk-UA')} ₴`;
   document.getElementById('free-money').innerText = freeMoney.toLocaleString('uk-UA') + ' ₴';
+  
   const percentSpent = planExpensesTotal > 0 ? Math.round((factExpense / planExpensesTotal) * 100) : 0;
   document.getElementById('progress-desc').innerText = `Витрачено ${factExpense.toLocaleString('uk-UA')} ₴ з планового ліміту ${planExpensesTotal.toLocaleString('uk-UA')} ₴ (${percentSpent}%)`;
 
-  const chartColors = ['#6366f1', '#3b82f6', '#10b981', '#eab308', '#f43f5e', '#a855f7', '#f97316', '#06b6d4', '#ec4899', '#14b8a6'];
-  new Chart(document.getElementById('planChart'), { type: 'doughnut', data: { labels: Object.keys(planExpensesByCategory), datasets: [{ data: Object.values(planExpensesByCategory), backgroundColor: chartColors, borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
-  new Chart(document.getElementById('factChart'), { type: 'doughnut', data: { labels: Object.keys(expensesByCategory), datasets: [{ data: Object.values(expensesByCategory), backgroundColor: chartColors, borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
-  new Chart(document.getElementById('progressChart'), { type: 'doughnut', data: { labels: ['Вже витрачено', 'Вільний ліміт'], datasets: [{ data: [factExpense, Math.max(0, planExpensesTotal - factExpense)], backgroundColor: ['#f43f5e', '#334155'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } } } });
+  const chartColors = ['#6366f1', '#3b82f6', '#10b981', '#eab308', '#f43f5e', '#a855f7', '#f97316', '#06b6d4', '#ec4899', '#14b8a6', '#64748b'];
+
+  // Перемальовуємо 3 графіки
+  new Chart(document.getElementById('planChart'), {
+    type: 'doughnut',
+    data: { labels: Object.keys(cleanPlanChartData), datasets: [{ data: Object.values(cleanPlanChartData), backgroundColor: chartColors, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  new Chart(document.getElementById('factChart'), {
+    type: 'doughnut',
+    data: { labels: Object.keys(cleanFactChartData), datasets: [{ data: Object.values(cleanFactChartData), backgroundColor: chartColors, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  const remainingPlan = Math.max(0, planExpensesTotal - factExpense);
+  new Chart(document.getElementById('progressChart'), {
+    type: 'doughnut',
+    data: { labels: ['Вже витрачено', 'Вільний ліміт'], datasets: [{ data: [factExpense, remainingPlan], backgroundColor: ['#f43f5e', '#334155'], borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } } }
+  });
 }
 
 function setupWishlistFilters(data) {
