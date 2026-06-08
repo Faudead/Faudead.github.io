@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Фінансовий простір</title>
+<title>Фінанси + Wishlist</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -28,6 +28,7 @@ body{
   border:none;
   color:#94a3b8;
   border-radius:10px;
+  cursor:pointer;
 }
 
 .tab-btn.active{
@@ -50,11 +51,24 @@ body{
   padding:12px;
 }
 
-.big{font-size:28px;font-weight:bold;color:#22c55e;}
 .small{color:#94a3b8;font-size:13px;}
+.big{font-size:26px;font-weight:bold;color:#22c55e;}
 
 .chart{
   height:240px;
+}
+
+input,select{
+  padding:10px;
+  border-radius:10px;
+  border:none;
+}
+
+.controls{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
 }
 
 img{
@@ -70,21 +84,13 @@ button{
   padding:8px;
   border:none;
   border-radius:8px;
+  cursor:pointer;
   background:#2563eb;
   color:white;
 }
-button.bought{background:#16a34a;}
 
-input,select{
-  padding:10px;
-  border-radius:10px;
-  border:none;
-}
-.controls{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-bottom:12px;
+button.done{
+  background:#16a34a;
 }
 </style>
 </head>
@@ -108,24 +114,18 @@ input,select{
     </div>
 
     <div class="card">
-      <div class="small">Гроші</div>
-      <div class="chart">
-        <canvas id="moneyChart"></canvas>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="small">Витрати</div>
-      <div class="chart">
-        <canvas id="expenseChart"></canvas>
-      </div>
+      <div class="small">Факт (реальність)</div>
+      <div class="chart"><canvas id="factChart"></canvas></div>
     </div>
 
     <div class="card">
       <div class="small">План</div>
-      <div class="chart">
-        <canvas id="planChart"></canvas>
-      </div>
+      <div class="chart"><canvas id="planChart"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="small">Контроль (план vs факт)</div>
+      <div class="chart"><canvas id="controlChart"></canvas></div>
     </div>
 
   </div>
@@ -138,9 +138,7 @@ input,select{
 
   <div class="controls">
     <input id="search" placeholder="Пошук...">
-    <select id="category">
-      <option value="all">Всі</option>
-    </select>
+    <select id="category"><option value="all">Всі</option></select>
     <select id="sort">
       <option value="none">Сортування</option>
       <option value="asc">↑ дешевші</option>
@@ -149,6 +147,7 @@ input,select{
   </div>
 
   <div id="grid" class="grid"></div>
+
 </div>
 
 <script>
@@ -168,8 +167,8 @@ fetch("data.json?t="+Date.now())
 .then(r=>r.json())
 .then(d=>{
   data=d;
-  renderBudget(data.transactions||[], data.budget||[]);
-  wishlist=data.wishlist||[];
+  renderBudget(d.transactions||[]);
+  wishlist=d.wishlist||[];
   renderWishlist(wishlist);
   setupFilters(wishlist);
 });
@@ -179,7 +178,7 @@ function renderBudget(tr){
   let income=0;
   let expense=0;
 
-  let cats={
+  let fact={
     "оренда":0,
     "комуналка":0,
     "їжа":0,
@@ -198,47 +197,16 @@ function renderBudget(tr){
     if(type==="Витрата"){
       expense+=sum;
 
-      if(cat.includes("орен")) cats.оренда+=sum;
-      else if(cat.includes("комун")) cats.комуналка+=sum;
-      else if(cat.includes("їж")) cats.їжа+=sum;
-      else if(cat.includes("транс")) cats.транспорт+=sum;
-      else if(cat.includes("зв")) cats["зв'язок"]+=sum;
-      else cats.інше+=sum;
+      if(cat.includes("орен")) fact.оренда+=sum;
+      else if(cat.includes("комун")) fact.комуналка+=sum;
+      else if(cat.includes("їж")) fact.їжа+=sum;
+      else if(cat.includes("транс")) fact.транспорт+=sum;
+      else if(cat.includes("зв")) fact["зв'язок"]+=sum;
+      else fact.інше+=sum;
     }
   });
 
-  let free=income-expense;
-
-  document.getElementById("free").innerText=free.toLocaleString()+" ₴";
-  document.getElementById("info").innerText=
-    `Дохід ${income} ₴ | Витрати ${expense} ₴`;
-
-  new Chart(document.getElementById("moneyChart"),{
-    type:"pie",
-    data:{
-      labels:["Дохід","Витрати","Залишок"],
-      datasets:[{
-        data:[income,expense,free],
-        backgroundColor:["#22c55e","#ef4444","#16a34a"]
-      }]
-    }
-  });
-
-  new Chart(document.getElementById("expenseChart"),{
-    type:"pie",
-    data:{
-      labels:Object.keys(cats),
-      datasets:[{
-        data:Object.values(cats),
-        backgroundColor:[
-          "#3b82f6","#64748b","#22c55e",
-          "#eab308","#a855f7","#94a3b8"
-        ]
-      }]
-    }
-  });
-
-  let planCats = {
+  let plan={
     "оренда":12000,
     "комуналка":3000,
     "їжа":8000,
@@ -247,16 +215,55 @@ function renderBudget(tr){
     "інше":1000
   };
 
+  let free=income-expense;
+
+  document.getElementById("free").innerText=free.toLocaleString()+" ₴";
+  document.getElementById("info").innerText=`Дохід ${income} ₴ | Витрати ${expense} ₴`;
+
+  // ===== FACT =====
+  new Chart(document.getElementById("factChart"),{
+    type:"pie",
+    data:{
+      labels:Object.keys(fact),
+      datasets:[{
+        data:Object.values(fact),
+        backgroundColor:["#22c55e","#3b82f6","#fbbf24","#a855f7","#94a3b8","#64748b"]
+      }]
+    }
+  });
+
+  // ===== PLAN =====
   new Chart(document.getElementById("planChart"),{
     type:"pie",
     data:{
-      labels:Object.keys(planCats),
+      labels:Object.keys(plan),
       datasets:[{
-        data:Object.values(planCats),
-        backgroundColor:[
-          "#60a5fa","#94a3b8","#22c55e",
-          "#fbbf24","#a78bfa","#64748b"
-        ]
+        data:Object.values(plan),
+        backgroundColor:["#60a5fa","#94a3b8","#22c55e","#fbbf24","#a78bfa","#64748b"]
+      }]
+    }
+  });
+
+  // ===== CONTROL =====
+  let planTotal=0;
+  let factTotal=0;
+
+  Object.keys(plan).forEach(k=>{
+    planTotal+=plan[k];
+    factTotal+=fact[k]||0;
+  });
+
+  let used=Math.min(planTotal,factTotal);
+  let over=Math.max(0,factTotal-planTotal);
+  let left=Math.max(0,planTotal-factTotal);
+
+  new Chart(document.getElementById("controlChart"),{
+    type:"pie",
+    data:{
+      labels:["В нормі","Перевитрата","Залишилось в плані"],
+      datasets:[{
+        data:[used,over,left],
+        backgroundColor:["#22c55e","#ef4444","#3b82f6"]
       }]
     }
   });
@@ -264,6 +271,7 @@ function renderBudget(tr){
 }
 
 function setupFilters(list){
+
   const set=new Set(list.map(i=>i.category).filter(Boolean));
   const cat=document.getElementById("category");
 
@@ -281,13 +289,13 @@ function apply(){
 
   let s=search.value.toLowerCase();
   let c=category.value;
-  let sort=sort.value;
+  let so=sort.value;
 
   if(s) f=f.filter(i=>(i.title||"").toLowerCase().includes(s));
   if(c!=="all") f=f.filter(i=>i.category===c);
 
-  if(sort==="asc") f.sort((a,b)=>Number(a.price)-Number(b.price));
-  if(sort==="desc") f.sort((a,b)=>Number(b.price)-Number(a.price));
+  if(so==="asc") f.sort((a,b)=>Number(a.price)-Number(b.price));
+  if(so==="desc") f.sort((a,b)=>Number(b.price)-Number(a.price));
 
   renderWishlist(f);
 }
@@ -306,20 +314,24 @@ function renderWishlist(list){
   list.forEach(i=>{
 
     let t=i.title||"";
-    let p=Number(i.price||0);
-
+    let p=i.price||"";
     let is=bought[t];
 
     g.innerHTML+=`
       <div class="card">
+
         <img src="${i.image||""}">
-        <div>${t}</div>
+
         <div class="small">${i.category||""}</div>
+        <div><b>${t}</b></div>
         <div>${p} ₴</div>
+
         <a href="${i.url||"#"}" target="_blank">відкрити</a>
-        <button class="${is?"bought":""}" onclick="toggle(${JSON.stringify(t)})">
-          ${is?"✔ куплено":"купити"}
+
+        <button class="${is?"done":""}" onclick="toggle(${JSON.stringify(t)})">
+          ${is?"✔ Відмічено":"Відмітити"}
         </button>
+
       </div>
     `;
   });
