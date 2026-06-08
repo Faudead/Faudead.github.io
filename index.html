@@ -1,226 +1,88 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Фінанси + Wishlist</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background: #0f172a;
-  color: white;
-  margin: 0;
-  padding: 16px;
-}
-
-.tabs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.tab-btn {
-  padding: 10px 16px;
-  border-radius: 10px;
-  border: 1px solid #334155;
-  background: #1e293b;
-  color: white;
-  cursor: pointer;
-}
-
-.tab-btn.active {
-  background: #2563eb;
-}
-
-.tab {
-  display: none;
-}
-
-.tab.active {
-  display: block;
-}
-
-.card {
-  background: #1e293b;
-  padding: 12px;
-  border-radius: 12px;
-  margin-top: 10px;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
-}
-
-button {
-  margin-top: 8px;
-  padding: 10px;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  background: #2563eb;
-  color: white;
-}
-
-button.bought {
-  background: #16a34a;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Бюджет та Вішліст</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { padding: 10px 20px; border-radius: 8px; border: none; background: #1e293b; color: white; cursor: pointer; }
+        .tab-btn.active { background: #2563eb; }
+        .tab { display: none; }
+        .tab.active { display: block; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .card { background: #1e293b; padding: 15px; border-radius: 10px; }
+        canvas { max-width: 400px; margin-bottom: 20px; }
+    </style>
 </head>
-
 <body>
 
 <div class="tabs">
-  <button class="tab-btn active" onclick="openTab('finance')">📊 Фінанси</button>
-  <button class="tab-btn" onclick="openTab('wish')">🎁 Вішліст</button>
+    <button class="tab-btn active" onclick="showTab('finance')">📊 Бюджет</button>
+    <button class="tab-btn" onclick="showTab('wish')">🎁 Вішліст</button>
 </div>
 
-<!-- ================= FINANCE ================= -->
 <div id="finance" class="tab active">
-
-  <canvas id="chart1"></canvas>
-  <canvas id="chart2"></canvas>
-  <canvas id="chart3"></canvas>
-
+    <h2>Графік витрат</h2>
+    <canvas id="financeChart"></canvas>
 </div>
 
-<!-- ================= WISHLIST ================= -->
 <div id="wish" class="tab">
-
-  <h2>Список бажань</h2>
-  <div class="grid" id="grid"></div>
-
+    <h2>Список бажань</h2>
+    <div class="grid" id="wishlist-grid"></div>
 </div>
 
 <script>
-/* ===================== TABS ===================== */
-function openTab(id) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-
-  document.getElementById(id).classList.add('active');
-  event.target.classList.add('active');
-
-  if (id === 'wish') loadWishlist();
-}
-
-/* ===================== FAKE DATA (підключиш свої) ===================== */
-const transactions = [
-  {type:"Дохід", sum:32000},
-  {type:"Витрата", sum:18500, cat:"Їжа"},
-];
-
-const plan = {
-  "Оренда":12000,
-  "Їжа":8000,
-  "Транспорт":2000
-};
-
-/* ===================== CHART 1 (ФАКТ) ===================== */
-function chart1() {
-  let income = 0;
-  let expense = 0;
-
-  transactions.forEach(t=>{
-    if(t.type==="Дохід") income += t.sum;
-    if(t.type==="Витрата") expense += t.sum;
-  });
-
-  let balance = income - expense;
-
-  new Chart(document.getElementById('chart1'), {
-    type:'pie',
-    data:{
-      labels:['Дохід','Витрати','Залишок зараз'],
-      datasets:[{
-        data:[income, expense, balance]
-      }]
+    async function loadData() {
+        try {
+            const response = await fetch('data.json');
+            const data = await response.json();
+            
+            // Відображення графіків (Finance)
+            renderCharts(data.transactions);
+            
+            // Відображення списку (Wishlist)
+            renderWishlist(data.wishlist);
+        } catch (e) { console.error("Помилка завантаження data.json", e); }
     }
-  });
-}
 
-/* ===================== CHART 2 (PLAN) ===================== */
-function chart2() {
-  new Chart(document.getElementById('chart2'), {
-    type:'pie',
-    data:{
-      labels:Object.keys(plan),
-      datasets:[{
-        data:Object.values(plan)
-      }]
+    function renderCharts(transactions) {
+        const labels = [...new Set(transactions.map(t => t.Категорія))];
+        const values = labels.map(cat => 
+            transactions.filter(t => t.Категорія === cat && t.Тип === "Витрата")
+                        .reduce((sum, t) => sum + Number(t.Сума || 0), 0)
+        );
+
+        new Chart(document.getElementById('financeChart'), {
+            type: 'pie',
+            data: { labels: labels, datasets: [{ data: values, backgroundColor: ['#f87171', '#fbbf24', '#34d399', '#60a5fa'] }] }
+        });
     }
-  });
-}
 
-/* ===================== CHART 3 (CONTROL) ===================== */
-function chart3() {
-  let expense = transactions.filter(t=>t.type==="Витрата")
-    .reduce((a,b)=>a+b.sum,0);
-
-  let planTotal = Object.values(plan).reduce((a,b)=>a+b,0);
-
-  let diff = planTotal - expense;
-
-  new Chart(document.getElementById('chart3'), {
-    type:'pie',
-    data:{
-      labels:['В межах','Відхилення','Ще можна'],
-      datasets:[{
-        data:[
-          Math.min(expense, planTotal),
-          expense>planTotal?expense-planTotal:0,
-          diff>0?diff:0
-        ]
-      }]
+    function renderWishlist(wishlist) {
+        const grid = document.getElementById("wishlist-grid");
+        wishlist.forEach(i => {
+            grid.innerHTML += `
+                <div class="card">
+                    <small>${i.category}</small>
+                    <h3>${i.title}</h3>
+                    <p><b>${i.price} ₴</b></p>
+                    <a href="${i.url}" target="_blank" style="color:#60a5fa">Посилання</a>
+                </div>
+            `;
+        });
     }
-  });
-}
 
-/* ===================== WISHLIST ===================== */
-let data = [
-  {title:"Навушники", price:2000, category:"Електроніка", url:"#"},
-  {title:"Крісло", price:5000, category:"Дім", url:"#"}
-];
+    function showTab(id) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
 
-let bought = JSON.parse(localStorage.getItem("bought")||"{}");
-
-function loadWishlist() {
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
-
-  data.forEach(i=>{
-    const is = bought[i.title];
-
-    grid.innerHTML += `
-      <div class="card">
-        <div>${i.category}</div>
-        <h3>${i.title}</h3>
-        <div>${i.price} ₴</div>
-        <a href="${i.url}" target="_blank">відкрити</a>
-        <button class="${is?'bought':''}"
-        onclick="toggle('${i.title}')">
-          ${is?'✔ Куплено':'Позначити куплено'}
-        </button>
-      </div>
-    `;
-  });
-}
-
-function toggle(title){
-  bought[title] = !bought[title];
-  localStorage.setItem("bought",JSON.stringify(bought));
-  loadWishlist();
-}
-
-/* ===================== INIT ===================== */
-chart1();
-chart2();
-chart3();
-loadWishlist();
-
+    loadData();
 </script>
 
 </body>
