@@ -21,7 +21,20 @@ h1 {
   margin-bottom: 16px;
 }
 
-/* Навігація вкладок (Tabs) */
+/* Блок логування помилок */
+#debug-log {
+  background: #341212;
+  border: 1px solid #f43f5e;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #fca5a5;
+  display: none; /* Показується тільки якщо є помилки */
+}
+
+/* Навігація вкладок */
 .tabs {
   display: flex;
   gap: 8px;
@@ -124,7 +137,7 @@ h1 {
   height: 220px;
 }
 
-/* Елементи Списку Бажань */
+/* Список Бажань */
 .controls {
   display: flex;
   gap: 10px;
@@ -224,6 +237,8 @@ button.bought {
 </head>
 <body>
 
+<div id="debug-log"><strong>Лог розробника (Помилки завантаження):</strong><br></div>
+
 <div class="tabs">
   <button class="tab-btn active" onclick="switchTab('budget-tab', this)">📊 Бюджет та Моніторинг</button>
   <button class="tab-btn" onclick="switchTab('wishlist-tab', this)">🎁 Список бажань</button>
@@ -232,8 +247,8 @@ button.bought {
 <div id="budget-tab" class="tab-content active">
   <div class="budget-header">
     <div>
-      <h1 style="margin:0;">Фінансовий моніторинг</h1>
-      <p id="income-summary" style="margin:4px 0 0 0; color:#94a3b8; font-size:14px;">Зчитування таблиць...</p>
+      <h1 style="margin:0;">Финансовий моніторинг</h1>
+      <p id="income-summary" style="margin:4px 0 0 0; color:#94a3b8; font-size:14px;">Очікування завантаження даних...</p>
     </div>
     <div class="free-money-box">
       <div class="free-title">💰 Вільно зараз</div>
@@ -277,17 +292,21 @@ button.bought {
 </div>
 
 <script>
-// =========================================================================
-// ПОСИЛАННЯ НА ТАБЛИЦЮ ОНОВЛЕНО
-// =========================================================================
 const SHEET_ID = "1W0Lm4Rf9UGrzNPf4JD9Io_XfroqOnrAf"; 
 
-const URL_WISHLIST     = `https://opensheet.elk.sh/${SHEET_ID}/Sheet1`;
+// Виправлено: у вашому файлі червнева вкладка тепер називається "Довідники" замість "Sheet1"
+const URL_WISHLIST     = `https://opensheet.elk.sh/${SHEET_ID}/Довідники`;
 const URL_TRANSACTIONS = `https://opensheet.elk.sh/${SHEET_ID}/Транзакції`;
 const URL_BUDGET       = `https://opensheet.elk.sh/${SHEET_ID}/Бюджет`;
 
 let wishlistData = [];
 let bought = JSON.parse(localStorage.getItem("bought") || "{}");
+
+function logError(message) {
+  const logBox = document.getElementById('debug-log');
+  logBox.style.display = 'block';
+  logBox.innerHTML += message + '<br>';
+}
 
 function switchTab(tabId, btn) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -296,11 +315,35 @@ function switchTab(tabId, btn) {
   btn.classList.add('active');
 }
 
-// Завантаження даних із трьох вкладок
+// Функція безпечного запиту з відстеженням конкретної проблеми
+function fetchTab(url, tabName) {
+  return fetch(url)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Код ${response.status} (${response.statusText})`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data && data.error) {
+        throw new Error(`Помилка Google API: ${data.error}`);
+      }
+      if (!Array.isArray(data) || data.length === 0) {
+        logError(`⚠️ Увага: Вкладка "${tabName}" повернула порожній масив. Перевірте наявність рядків.`);
+      }
+      return data;
+    })
+    .catch(err => {
+      logError(`❌ Не вдалося завантажити вкладку [${tabName}]: ${err.message}. Перевірте чи вірно вказана назва вкладки в Excel та чи є загальний доступ.`);
+      return [];
+    });
+}
+
+// Запуск одночасного завантаження
 Promise.all([
-  fetch(URL_WISHLIST).then(r => r.json()).catch(() => []),
-  fetch(URL_TRANSACTIONS).then(r => r.json()).catch(() => []),
-  fetch(URL_BUDGET).then(r => r.json()).catch(() => [])
+  fetchTab(URL_WISHLIST, "Довідники"),
+  fetchTab(URL_TRANSACTIONS, "Транзакції"),
+  fetchTab(URL_BUDGET, "Бюджет")
 ]).then(([wishlist, transactions, budget]) => {
   wishlistData = wishlist;
   setupWishlistFilters(wishlistData);
@@ -313,11 +356,14 @@ function renderBudgetDashboard(transactions, budget) {
   let factExpense = 0;
   let expensesByCategory = {};
 
-  // Прямий підрахунок транзакцій (Доходи мінус всі записані Витрати)
-  transactions.forEach(tx => {
+  transactions.forEach((tx, idx) => {
     const type = tx["Тип"] || tx["тип"];
     const category = tx["Категорія"] || tx["категорія"];
     const sum = parseFloat(tx["Сума"] || tx["сума"]) || 0;
+
+    if (!type && sum > 0) {
+      logError(`⚠️ Рядок транзакцій №${idx+2} має суму ${sum}, але поле "Тип" порожнє.`);
+    }
 
     if (type === "Дохід") {
       factIncome += sum;
@@ -329,7 +375,6 @@ function renderBudgetDashboard(transactions, budget) {
     }
   });
 
-  // Зчитування планових лімітів з вкладки Бюджет
   let planIncomeTotal = 0;
   let planExpensesByCategory = {};
   let planExpensesTotal = 0;
@@ -360,52 +405,53 @@ function renderBudgetDashboard(transactions, budget) {
     }
   });
 
-  // Чистий математичний результат за вашими даними
   const freeMoney = factIncome - factExpense;
 
-  // Вивід інформації на екран
   document.getElementById('income-summary').innerText = `Очікуваний дохід (План): ${planIncomeTotal.toLocaleString('uk-UA')} ₴ | Отримано фактично: ${factIncome.toLocaleString('uk-UA')} ₴`;
   document.getElementById('free-money').innerText = freeMoney.toLocaleString('uk-UA') + ' ₴';
   
   const percentSpent = planExpensesTotal > 0 ? Math.round((factExpense / planExpensesTotal) * 100) : 0;
   document.getElementById('progress-desc').innerText = `Витрачено ${factExpense.toLocaleString('uk-UA')} ₴ з планового ліміту ${planExpensesTotal.toLocaleString('uk-UA')} ₴ (${percentSpent}%)`;
 
-  // Кольори для графіків
   const chartColors = ['#6366f1', '#3b82f6', '#10b981', '#eab308', '#f43f5e', '#a855f7', '#f97316', '#06b6d4', '#ec4899', '#14b8a6'];
 
-  // Побудова графіків Chart.js
-  new Chart(document.getElementById('planChart'), {
-    type: 'doughnut',
-    data: {
-      labels: Object.keys(planExpensesByCategory),
-      datasets: [{ data: Object.values(planExpensesByCategory), backgroundColor: chartColors, borderWidth: 0 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-  });
+  try {
+    new Chart(document.getElementById('planChart'), {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(planExpensesByCategory),
+        datasets: [{ data: Object.values(planExpensesByCategory), backgroundColor: chartColors, borderWidth: 0 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
 
-  new Chart(document.getElementById('factChart'), {
-    type: 'doughnut',
-    data: {
-      labels: Object.keys(expensesByCategory),
-      datasets: [{ data: Object.values(expensesByCategory), backgroundColor: chartColors, borderWidth: 0 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-  });
+    new Chart(document.getElementById('factChart'), {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(expensesByCategory),
+        datasets: [{ data: Object.values(expensesByCategory), backgroundColor: chartColors, borderWidth: 0 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
 
-  const remainingPlan = Math.max(0, planExpensesTotal - factExpense);
-  new Chart(document.getElementById('progressChart'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Вже витрачено', 'Вільний ліміт бюджету'],
-      datasets: [{ data: [factExpense, remainingPlan], backgroundColor: ['#f43f5e', '#334155'], borderWidth: 0 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } } }
-  });
+    const remainingPlan = Math.max(0, planExpensesTotal - factExpense);
+    new Chart(document.getElementById('progressChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Вже витрачено', 'Вільний ліміт бюджету'],
+        datasets: [{ data: [factExpense, remainingPlan], backgroundColor: ['#f43f5e', '#334155'], borderWidth: 0 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } } }
+    });
+  } catch (chartErr) {
+    logError(`❌ Помилка рендерингу графіків Chart.js: ${chartErr.message}`);
+  }
 }
 
 // --- Список Бажань ---
 function setupWishlistFilters(data) {
-  const categories = [...new Set(data.map(i => i.category).filter(Boolean))];
+  if(!data || data.length === 0) return;
+  const categories = [...new Set(data.map(i => i.category || i.Категорія).filter(Boolean))];
   const cat = document.getElementById("category");
   categories.forEach(c => { cat.innerHTML += `<option value="${c}">${c}</option>`; });
   document.getElementById("search").addEventListener("input", applyWishlistFilters);
@@ -418,37 +464,48 @@ function applyWishlistFilters() {
   const search = document.getElementById("search").value.toLowerCase();
   const category = document.getElementById("category").value;
   const sort = document.getElementById("sort").value;
-  if (search) filtered = filtered.filter(i => (i.title || "").toLowerCase().includes(search));
-  if (category !== "all") filtered = filtered.filter(i => i.category === category);
-  if (sort === "asc")  filtered.sort((a, b) => Number(a.price) - Number(b.price));
-  if (sort === "desc") filtered.sort((a, b) => Number(b.price) - Number(a.price));
+  
+  if (search) filtered = filtered.filter(i => (i.title || i.Назва || "").toLowerCase().includes(search));
+  if (category !== "all") filtered = filtered.filter(i => (i.category || i.Категорія) === category);
+  if (sort === "asc")  filtered.sort((a, b) => Number(a.price || a.Ціна) - Number(b.price || b.Ціна));
+  if (sort === "desc") filtered.sort((a, b) => Number(b.price || b.Ціна) - Number(a.price || a.Ціна));
   renderWishlist(filtered);
 }
 
 function toggleBought(title) {
   bought[title] = !bought[title];
   localStorage.setItem("bought", JSON.stringify(bought));
-  renderWishlist(wishlistData);
+  applyWishlistFilters();
 }
 
 function renderWishlist(items) {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
+  if (!items || items.length === 0) {
+    grid.innerHTML = "<p style='color:#94a3b8; font-size:14px;'>Тут поки порожньо або вкладка не розпізнана.</p>";
+    return;
+  }
   items.forEach(item => {
-    const isBought = bought[item.title];
+    const title = item.title || item.Назва || '-';
+    const category = item.category || item.Категорія || '-';
+    const price = item.price || item.Ціна || '';
+    const url = item.url || item.Посилання || '#';
+    const image = item.image || item.Картинка || '';
+    const isBought = bought[title];
+    
     grid.innerHTML += `
       <div class="card">
-        <img src="${item.image || ''}" onerror="this.style.display='none'">
+        <img src="${image}" onerror="this.style.display='none'">
         <div class="content">
           <div class="label">Категорія</div>
-          <div class="category">${item.category || '-'}</div>
+          <div class="category">${category}</div>
           <div class="label">Назва</div>
-          <div class="title">${item.title || '-'}</div>
+          <div class="title">${title}</div>
           <div class="label">Ціна</div>
-          <div class="price">${item.price ? item.price + ' ₴' : '-'}</div>
+          <div class="price">${price ? price + ' ₴' : '-'}</div>
           <div class="label">Посилання</div>
-          <a href="${item.url || '#'}" target="_blank">відкрити товар</a>
-          <button class="${isBought ? 'bought' : ''}" onclick="toggleBought('${item.title}')">
+          <a href="${url}" target="_blank">відкрити товар</a>
+          <button class="${isBought ? 'bought' : ''}" onclick="toggleBought('${title}')">
             ${isBought ? '✔ Куплено' : 'Позначити як куплено'}
           </button>
         </div>
