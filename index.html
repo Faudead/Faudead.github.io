@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Фінанси</title>
+    <title>Бюджет та Вішліст</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: sans-serif; background: #0f172a; color: white; margin: 0; padding: 15px; }
         .tab { display: none; }
         .tab.active { display: block; }
         .card { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 15px; }
-        .stat-val { font-size: 24px; font-weight: bold; color: #60a5fa; }
-        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
-        .wish-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-        .wish-card img { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; }
-        button { width: 48%; padding: 10px; border-radius: 8px; border: none; background: #334155; color: white; }
+        .stat-val { font-size: 28px; font-weight: bold; color: #60a5fa; margin-top: 5px; }
+        .wish-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+        .wish-card { background: #1e293b; padding: 10px; border-radius: 8px; text-align: center; }
+        .wish-card img { width: 100%; height: 100px; object-fit: cover; border-radius: 6px; }
+        button { width: 48%; padding: 12px; border-radius: 8px; border: none; background: #334155; color: white; cursor: pointer; }
         .active-btn { background: #2563eb !important; }
+        h3 { margin: 5px 0; color: #cbd5e1; }
     </style>
 </head>
 <body>
@@ -31,12 +32,10 @@
         <div class="stat-val" id="val-balance">0 ₴</div>
         <canvas id="c1"></canvas>
     </div>
-
     <div class="card">
         <h3>Планові витрати</h3>
         <canvas id="c2"></canvas>
     </div>
-
     <div class="card">
         <h3>Доступно до витрат</h3>
         <div class="stat-val" id="val-remain">0 ₴</div>
@@ -50,35 +49,52 @@
 
 <script>
 async function load() {
-    const res = await fetch('data.json');
-    const d = await res.json();
+    try {
+        const res = await fetch('data.json');
+        const d = await res.json();
 
-    const income = d.transactions.filter(t=>t.Тип=="Дохід").reduce((a,b)=>a+Number(b.Сума),0);
-    const expense = d.transactions.filter(t=>t.Тип=="Витрата").reduce((a,b)=>a+Number(b.Сума),0);
-    
-    // 1. Залишок
-    document.getElementById('val-balance').innerText = (income - expense) + " ₴";
-    new Chart(document.getElementById('c1'), {type:'pie', data:{labels:['Дохід','Витрати'], datasets:[{data:[income, expense]}]}});
+        // 1. ФІНАНСИ: Реальний залишок
+        const income = d.transactions.filter(t => t.Тип === "Дохід").reduce((a, b) => a + Number(b.Сума), 0);
+        const expense = d.transactions.filter(t => t.Тип === "Витрата").reduce((a, b) => a + Number(b.Сума), 0);
+        document.getElementById('val-balance').innerText = (income - expense) + " ₴";
+        
+        new Chart(document.getElementById('c1'), {
+            type: 'pie',
+            data: { labels: ['Витрачено', 'Залишок'], datasets: [{ data: [expense, income - expense], backgroundColor: ['#ef4444', '#22c55e'] }] }
+        });
 
-    // 2. План
-    const plan = d.budget.filter(b=>b['Unnamed: 1'] && !isNaN(b['Unnamed: 1']));
-    new Chart(document.getElementById('c2'), {type:'pie', data:{labels:plan.map(b=>b['Планові доходи']), datasets:[{data:plan.map(b=>Number(b['Unnamed: 1']))}]}});
+        // 2. ПЛАН:
+        const planItems = d.budget.filter(b => !isNaN(b['Unnamed: 1']) && b['Unnamed: 1'] !== "");
+        new Chart(document.getElementById('c2'), {
+            type: 'pie',
+            data: { labels: planItems.map(b => b['Планові доходи']), datasets: [{ data: planItems.map(b => Number(b['Unnamed: 1'])) }] }
+        });
 
-    // 3. Лишилось
-    const planTotal = plan.reduce((a,b)=>a+Number(b['Unnamed: 1']),0);
-    const remain = Math.max(0, planTotal - expense);
-    document.getElementById('val-remain').innerText = remain + " ₴";
-    new Chart(document.getElementById('c3'), {type:'doughnut', data:{labels:['Витрачено','Доступно'], datasets:[{data:[expense, remain]}]}});
+        // 3. ЗАЛИШОК ПО ПЛАНУ:
+        const planTotal = planItems.reduce((a, b) => a + Number(b['Unnamed: 1']), 0);
+        const remain = Math.max(0, planTotal - expense);
+        document.getElementById('val-remain').innerText = remain + " ₴";
+        
+        new Chart(document.getElementById('c3'), {
+            type: 'doughnut',
+            data: { labels: ['Витрачено', 'Лишилось'], datasets: [{ data: [expense, remain], backgroundColor: ['#3b82f6', '#f472b6'] }] }
+        });
 
-    // Вішліст
-    const grid = document.getElementById('w-grid');
-    d.wishlist.forEach(i => {
-        grid.innerHTML += `<div class="card wish-card"><img src="${i.image}"><h4>${i.title}</h4><p>${i.price} ₴</p></div>`;
-    });
+        // ВІШЛІСТ:
+        const grid = document.getElementById('w-grid');
+        d.wishlist.forEach(i => {
+            grid.innerHTML += `
+                <div class="wish-card">
+                    <img src="${i.image}">
+                    <h4 style="font-size:12px; margin:5px 0;">${i.title}</h4>
+                    <a href="${i.url}" target="_blank" style="color:#60a5fa; font-size:12px;">${i.price} ₴</a>
+                </div>`;
+        });
+    } catch(e) { console.error("Помилка:", e); }
 }
 
 function show(id) {
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     document.getElementById('b1').className = (id=='finance'?'active-btn':'');
     document.getElementById('b2').className = (id=='wish'?'active-btn':'');
