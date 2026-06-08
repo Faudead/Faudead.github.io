@@ -6,33 +6,35 @@ on:
 jobs:
   update-data:
     runs-on: ubuntu-latest
+
     permissions:
-      contents: write  # Обов'язково для push
+      contents: write
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install pandas requests
+        run: |
+          pip install --upgrade pip
+          pip install pandas requests openpyxl
 
       - name: Run update script
         run: python update.py
 
-      - name: Commit and Push
+      - name: Commit and Push changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Додаємо обидва файли
+
           git add data.json debug_log.txt
-          
-          # Якщо змін немає, git commit впаде, тому додаємо || exit 0
-          git commit -m "Оновлено дані через Actions" || echo "Змін немає"
-          
+
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+
+          git commit -m "🔄 Оновлено фінансові дані"
           git push
