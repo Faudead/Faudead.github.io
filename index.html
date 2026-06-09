@@ -225,10 +225,11 @@
   .wish-card:hover { border-color: var(--accent4); }  
   .wish-img {  
     width: 100%;  
-    height: 120px;  
-    object-fit: cover;  
+    height: 140px;  
+    object-fit: contain;  
     display: block;  
     background: var(--surface2);  
+    padding: 8px;  
   }  
   .wish-body { padding: 10px; }  
   .wish-cat {  
@@ -340,20 +341,73 @@
     animation: spin 0.8s linear infinite;  
   }  
   @keyframes spin { to { transform: rotate(360deg); } }  
+
+  /* ── DESKTOP ── */
+  @media (min-width: 768px) {
+    body { padding: 0 0 60px; }
+
+    .header {
+      padding: 18px calc(50vw - 360px) 14px;
+    }
+    .header-top { max-width: 720px; margin: 0 auto 14px; }
+    .nav { max-width: 720px; margin: 0 auto; }
+
+    .tab { padding: 24px calc(50vw - 360px) 0; }
+
+    .stats-row { max-width: 720px; margin-left: auto; margin-right: auto; }
+
+    .stat-value { font-size: 22px; }
+
+    /* 2-col layout for overview bottom section */
+    .overview-bottom {
+      max-width: 720px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    #ov-alerts { max-width: 720px; margin: 0 auto; }
+    .donut-wrap { max-width: 720px; margin-left: auto; margin-right: auto; }
+
+    #cat-list, #tx-list { max-width: 720px; margin: 0 auto; }
+    .section-title { max-width: 720px; margin-left: auto; margin-right: auto; }
+
+    /* Wishlist: 3 cols on tablet, 4 on wide */
+    .wish-grid { grid-template-columns: repeat(3, 1fr); max-width: 720px; margin: 0 auto; }
+    .wish-stat { max-width: 720px; margin: 0 auto 14px; }
+
+    #wish-content > .section-title { max-width: 720px; margin-left: auto; margin-right: auto; }
+    #wish-content > div[style] { max-width: 720px; margin-left: auto; margin-right: auto; }
+  }
+
+  @media (min-width: 1100px) {
+    .header { padding: 18px calc(50vw - 480px) 14px; }
+    .header-top { max-width: 960px; }
+    .nav { max-width: 960px; }
+    .tab { padding: 24px calc(50vw - 480px) 0; }
+    .stats-row, #ov-alerts, .donut-wrap, #cat-list, #tx-list, .section-title { max-width: 960px; }
+    .overview-bottom { max-width: 960px; }
+    .wish-grid { grid-template-columns: repeat(4, 1fr); max-width: 960px; }
+    #wish-content > .section-title,
+    #wish-content > div[style] { max-width: 960px; }
+  }
+
 </style>  
 </head>  
 <body>  
   
 <div class="header">  
   <div class="header-top">  
-    <div class="logo">₴ бюджет</div>  
+    <div class="logo">&#8372; бюджет</div>  
     <div class="month-badge">ЧЕРВЕНЬ 2026</div>  
   </div>  
   <div class="nav">  
-    <button class="nav-btn active" onclick="showTab('overview')">📊 Огляд</button>  
-    <button class="nav-btn" onclick="showTab('categories')">📂 Статті</button>  
-    <button class="nav-btn" onclick="showTab('txs')">📋 Транзакції</button>  
-    <button class="nav-btn" onclick="showTab('wish')">🎁 Вішліст</button>  
+    <button class="nav-btn active" onclick="showTab('overview', this)">&#128202; Огляд</button>  
+    <button class="nav-btn" onclick="showTab('categories', this)">&#128194; Статті</button>  
+    <button class="nav-btn" onclick="showTab('txs', this)">&#128203; Транзакції</button>  
+    <button class="nav-btn" onclick="showTab('wish', this)">&#127873; Вішліст</button>  
   </div>  
 </div>  
   
@@ -397,14 +451,14 @@
     </div>  
   </div>  
   
-  <div id="ov-alerts"></div>  
-  
-  <div class="donut-wrap" id="ov-donut-wrap">  
-    <!-- filled by JS -->  
+  <div id="ov-alerts"></div>
+  <div class="overview-bottom">
+    <div class="donut-wrap" id="ov-donut-wrap"></div>
+    <div>
+      <div class="section-title" style="margin-top:0">Розподіл витрат</div>
+      <div id="ov-expense-cats"></div>
+    </div>
   </div>  
-  
-  <div class="section-title">Розподіл витрат</div>  
-  <div id="ov-expense-cats"></div>  
 </div>  
   
 <!-- TAB: CATEGORIES -->  
@@ -430,7 +484,8 @@
 const CAT_EMOJI = {  
   'Оренда':'🏠','Комуналка':'💡','Їжа':'🛒','Транспорт':'🚌','Звʼязок':'📱',  
   "Зв'язок":'📱','Побут':'🧹','Хотілки':'✨','Медицина':'💊','Відкладення':'💰',  
-  'Зарплата':'💵','Кредит':'🏦','Англ':'📚','Готівка':'💵','Перевод':'↔️',  
+  'Зарплата':'💵','Кредит':'🏦','Англ':'📚','Готівка':'💵','Перевод':'↔️',
+  'Розваги':'🎭','Театр':'🎭',
   'default':'💸'  
 };  
   
@@ -457,7 +512,6 @@ function barClass(pct) {
   return 'bar-ok';  
 }  
   
-// Simple donut SVG  
 function buildDonut(segments, size=120) {  
   const cx = size/2, cy = size/2, r = 46, stroke = 16;  
   const total = segments.reduce((a,s)=>a+s.value,0);  
@@ -474,7 +528,6 @@ function buildDonut(segments, size=120) {
     paths += `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}" fill="none" stroke="${seg.color}" stroke-width="${stroke}" stroke-linecap="round"/>`;  
     angle += sweep + 0.03;  
   }  
-  // center text  
   const balText = segments.find(s=>s.label==='Залишок');  
   const pct = balText ? Math.round(balText.value/total*100) : '';  
   return `<svg width="${size}" height="${size}" class="donut-svg" viewBox="0 0 ${size} ${size}">  
@@ -508,7 +561,6 @@ async function load() {
   
   const budget = (d.budget || []);  
   
-  // Parse budget plan  
   const planMap = {};  
   let expectedIncome = 0;  
   for (const row of budget) {  
@@ -523,22 +575,20 @@ async function load() {
     }  
   }  
   
-  // Aggregate actual transactions  
   const income = txs.filter(t=>t.type==='Дохід').reduce((a,t)=>a+t.sum,0);  
   const expense = txs.filter(t=>t.type==='Витрата').reduce((a,t)=>a+t.sum,0);  
   const balance = income - expense;  
   
   const planExpense = Object.entries(planMap)  
-    .filter(([k])=>k!=='Зарплата (перша виплата)'&&k!=='Аванс')  
+    .filter(([k])=>k!=='Зарплата (перша виплата)'&&k!=='Аванс'&&k!=='Скіко очікується')  
     .reduce((a,[,v])=>a+v.plan,0);  
   
-  // Category actual spending  
   const catActual = {};  
   for (const t of txs.filter(t=>t.type==='Витрата')) {  
     catActual[t.cat] = (catActual[t.cat]||0) + t.sum;  
   }  
   
-  // ======= OVERVIEW =======  
+  // OVERVIEW  
   document.getElementById('ov-balance').textContent = fmt(balance);  
   document.getElementById('ov-balance-sub').textContent = balance >= 0 ? 'у плюсі' : '⚠ у мінусі';  
   document.getElementById('ov-expected').textContent = fmt(expectedIncome);  
@@ -546,7 +596,6 @@ async function load() {
   document.getElementById('ov-expense').textContent = fmt(expense);  
   document.getElementById('ov-plan').textContent = fmt(planExpense);  
   
-  // Alerts  
   const alerts = [];  
   for (const [cat, vals] of Object.entries(planMap)) {  
     const actual = catActual[cat] || 0;  
@@ -554,15 +603,11 @@ async function load() {
       alerts.push(`${emoji(cat)} <b>${cat}</b>: перевищення на ${fmt(actual - vals.plan)} (план ${fmt(vals.plan)}, факт ${fmt(actual)})`);  
     }  
   }  
-  // Check rent specifically (it may be named differently in txs)  
-  const rentActual = (catActual['Оренда']||0);  
-  const rentPlan = planMap['Оренда']?.plan || 0;  
   const alertsEl = document.getElementById('ov-alerts');  
   if (alerts.length) {  
     alertsEl.innerHTML = alerts.map(a=>`<div class="alert">⚠️ ${a}</div>`).join('');  
   }  
   
-  // Donut  
   const donutSegs = [  
     { label: 'Витрачено', value: expense, color: '#ff6b6b' },  
     { label: 'Залишок', value: Math.max(0, balance), color: '#4fffb0' },  
@@ -584,7 +629,6 @@ async function load() {
         </div>`).join('')}  
     </div>`;  
   
-  // Top expense cats  
   const topCats = Object.entries(catActual).sort((a,b)=>b[1]-a[1]).slice(0,5);  
   const topTotal = topCats.reduce((a,[,v])=>a+v,0);  
   document.getElementById('ov-expense-cats').innerHTML = topCats.map(([cat,val])=>{  
@@ -603,24 +647,23 @@ async function load() {
     </div>`;  
   }).join('');  
   
-  // ======= CATEGORIES =======  
+  // CATEGORIES  
   const planExpenseItems = [  
     {name:'Оренда',plan:planMap['Оренда']?.plan||0},  
     {name:'Комуналка',plan:planMap['Комуналка']?.plan||0},  
     {name:'Їжа',plan:planMap['Їжа']?.plan||0},  
     {name:'Транспорт',plan:planMap['Транспорт']?.plan||0},  
-    {name:'Звʼязок',plan:planMap['Звʼязок']?.plan||0},  
+    {name:'Звʼязок',plan:planMap['Звʼязок']?.plan||planMap["Зв'язок"]?.plan||0},  
     {name:'Побут',plan:planMap['Побут']?.plan||0},  
     {name:'Хотілки',plan:planMap['Хотілки']?.plan||0},  
     {name:'Медицина',plan:planMap['Медицина']?.plan||0},  
     {name:'Відкладення',plan:planMap['Відкладення']?.plan||0},  
-    {name:'Англ',plan:planMap['Англа']?.plan||0},  
+    {name:'Англа',plan:planMap['Англа']?.plan||0},  
     {name:'Кредит',plan:planMap['Кредит']?.plan||0},  
   ];  
   
   const catListEl = document.getElementById('cat-list');  
   catListEl.innerHTML = planExpenseItems.map(item=>{  
-    // match actual by category name (fuzzy)  
     let actual = 0;  
     for (const [k,v] of Object.entries(catActual)) {  
       if (k.toLowerCase().includes(item.name.toLowerCase().slice(0,4)) ||  
@@ -646,7 +689,7 @@ async function load() {
     </div>`;  
   }).join('');  
   
-  // ======= TRANSACTIONS =======  
+  // TRANSACTIONS  
   const txListEl = document.getElementById('tx-list');  
   const sorted = [...txs].sort((a,b)=>new Date(b.date)-new Date(a.date));  
   txListEl.innerHTML = sorted.map(t=>{  
@@ -663,7 +706,7 @@ async function load() {
     </div>`;  
   }).join('');  
   
-  // ======= WISHLIST =======  
+  // WISHLIST  
   const wishlist = d.wishlist || [];  
   const cats = [...new Set(wishlist.map(w=>w.category))];  
   const wishEl = document.getElementById('wish-content');  
@@ -693,11 +736,11 @@ async function load() {
   }  
 }  
   
-function showTab(id) {  
+function showTab(id, btn) {  
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));  
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));  
   document.getElementById('tab-'+id).classList.add('active');  
-  event.currentTarget.classList.add('active');  
+  btn.classList.add('active');  
 }  
   
 load();  
