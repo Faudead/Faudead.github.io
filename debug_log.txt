@@ -5,7 +5,7 @@ URL: https://docs.google.com/spreadsheets/d/1D11kd5byyB17kJ88mUGvBdhkLOX8IKsPn6C
 HTTP статус: 200
 Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
 📄 Вкладки: ['Транзакції', 'Бюджет', 'Довідники']
-   ✅ Транзакції: 27 рядків
+   ✅ Транзакції: 28 рядків
    ✅ Бюджет: 17 рядків
    ✅ Довідники: 10 рядків
 
